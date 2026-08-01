@@ -44,9 +44,14 @@ export default function Navbar() {
                 面试
               </NavLink>
               {isAuthenticated && (
-                <NavLink to="/trading" className={linkClass}>
-                  交易
-                </NavLink>
+                <>
+                  <NavLink to="/trading" className={linkClass}>
+                    交易
+                  </NavLink>
+                  <NavLink to="/runner" className={linkClass}>
+                    Python 运行器
+                  </NavLink>
+                </>
               )}
             </nav>
           </div>

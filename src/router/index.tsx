@@ -6,6 +6,7 @@ import Users from '@/pages/Users'
 import Interview from '@/pages/Interview'
 import Project from '@/pages/Project'
 import TradingPage from '@/pages/trading/TradingPage'
+import PythonRunner from '@/pages/PythonRunner'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 import { ProtectedRoute, GuestRoute } from '@/components/ProtectedRoute'
@@ -57,6 +58,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <TradingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="runner"
+          element={
+            <ProtectedRoute>
+              <PythonRunner />
             </ProtectedRoute>
           }
         />

@@ -5,6 +5,7 @@ import About from '@/pages/About'
 import Users from '@/pages/Users'
 import Interview from '@/pages/Interview'
 import Project from '@/pages/Project'
+import TradingPage from '@/pages/trading/TradingPage'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 import { ProtectedRoute, GuestRoute } from '@/components/ProtectedRoute'
@@ -48,6 +49,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <Project />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="trading"
+          element={
+            <ProtectedRoute>
+              <TradingPage />
             </ProtectedRoute>
           }
         />

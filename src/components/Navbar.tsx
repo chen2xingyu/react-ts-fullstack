@@ -43,6 +43,11 @@ export default function Navbar() {
               <NavLink to="/interview" className={linkClass}>
                 面试
               </NavLink>
+              {isAuthenticated && (
+                <NavLink to="/trading" className={linkClass}>
+                  交易
+                </NavLink>
+              )}
             </nav>
           </div>
 

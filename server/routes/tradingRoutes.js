@@ -18,6 +18,7 @@ router.get('/klines/:symbol', quoteController.getKlines)
 router.get('/account', tradingController.getAccount)
 router.get('/positions', tradingController.getPositions)
 router.get('/orders', tradingController.getOrders)
+router.post('/orders', tradingController.placeOrder)
 router.get('/trades', tradingController.getTrades)
 
 module.exports = router

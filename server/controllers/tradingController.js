@@ -1,9 +1,10 @@
 const PositionModel = require('../models/positionModel')
 const OrderModel = require('../models/orderModel')
 const TradeModel = require('../models/tradeModel')
+const orderService = require('../services/orderService')
 
 /**
- * 交易账户相关：资金 / 持仓 / 委托 / 成交查询
+ * 交易账户相关：资金 / 持仓 / 委托 / 成交查询 + 下单
  * req.account 由 ensureAccount 中间件注入
  */
 const tradingController = {
@@ -12,6 +13,31 @@ const tradingController = {
     try {
       res.json({ code: 0, message: 'success', data: req.account })
     } catch (error) {
+      next(error)
+    }
+  },
+
+  // 下单（限价/市价 + 买入/卖出）：风控 → 冻结 → 落库 → 投递撮合
+  async placeOrder(req, res, next) {
+    try {
+      const { symbol, side, order_type, price, quantity, client_order_id } = req.body
+      if (!symbol || side == null || order_type == null || !quantity) {
+        return res.json({ code: 1, message: '参数缺失：symbol/side/order_type/quantity' })
+      }
+      const order = await orderService.placeOrder(req.user.id, req.account, {
+        symbol,
+        side: Number(side),
+        order_type: Number(order_type),
+        price: price != null && price !== '' ? Number(price) : null,
+        quantity: Number(quantity),
+        client_order_id,
+      })
+      res.json({ code: 0, message: '委托已提交', data: order })
+    } catch (error) {
+      // 风控拒绝：业务错误，返回 code=1，前端拦截器 reject(message)
+      if (error.isRisk) {
+        return res.json({ code: 1, message: `风控拒绝：${error.message}` })
+      }
       next(error)
     }
   },

@@ -33,6 +33,18 @@ export function getOrders(params?: {
   return http.get<Order[]>('/trading/orders', { params }).then((r) => r.data)
 }
 
+// 下单（限价/市价 + 买入/卖出）
+export function placeOrder(data: {
+  symbol: string
+  side: number // 1买入 2卖出
+  order_type: number // 1限价 2市价
+  price?: number | null
+  quantity: number
+  client_order_id?: string
+}) {
+  return http.post<Order>('/trading/orders', data).then((r) => r.data)
+}
+
 // 成交列表
 export function getTrades() {
   return http.get<Trade[]>('/trading/trades').then((r) => r.data)

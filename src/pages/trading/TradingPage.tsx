@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import AccountBar from '@/components/trading/AccountBar'
 import KLineChart from '@/components/trading/KLineChart'
 import DepthBook from '@/components/trading/DepthBook'
+import OrderForm from '@/components/trading/OrderForm'
+import OrderList from '@/components/trading/OrderList'
 import { useMarketSocket, type Tick } from '@/hooks/useMarketSocket'
 import { getAccount, getStocks, getPositions, getKlines } from '@/api/trading'
 import type { Stock, Position, Kline } from '@/types/trading'
@@ -92,18 +94,17 @@ export default function TradingPage() {
 
       {/* 下单 + 委托（阶段 3） */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Placeholder
-          title="下单面板"
-          stage="阶段 3"
-          className="h-[320px]"
-          hint="限价 / 市价 · 风控 · 冻结资金"
+        <OrderForm
+          key={currentSymbol}
+          symbol={currentSymbol}
+          stock={current}
+          lastPrice={tick?.price}
+          account={account}
+          positions={positions}
         />
-        <Placeholder
-          title="委托列表"
-          stage="阶段 3"
-          className="lg:col-span-2 h-[320px]"
-          hint="可撤单 · 状态联动"
-        />
+        <div className="lg:col-span-2">
+          <OrderList />
+        </div>
       </div>
 
       {/* 持仓列表（阶段 1 真实数据） */}

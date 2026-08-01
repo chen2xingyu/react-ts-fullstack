@@ -6,6 +6,7 @@ import DepthBook from '@/components/trading/DepthBook'
 import OrderForm, { type PickedPrice } from '@/components/trading/OrderForm'
 import OrderList from '@/components/trading/OrderList'
 import TradeList from '@/components/trading/TradeList'
+import RiskLogList from '@/components/trading/RiskLogList'
 import { useMarketSocket, type Tick, type UserNotify } from '@/hooks/useMarketSocket'
 import { getAccount, getStocks, getPositions, getKlines } from '@/api/trading'
 import type { Stock, Position, Kline } from '@/types/trading'
@@ -143,6 +144,9 @@ export default function TradingPage() {
 
       {/* 成交列表（阶段 4：Python 撮合 → Node 结算落库） */}
       <TradeList />
+
+      {/* 风控日志（阶段 6：所有下单/撤单拒绝留痕） */}
+      <RiskLogList />
     </div>
   )
 }

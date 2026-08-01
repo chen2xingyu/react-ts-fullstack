@@ -1,10 +1,12 @@
 const pool = require('../config/db')
 const { redis } = require('../config/redis')
 const { hub } = require('../ws/hub')
+const activeSnapshot = require('./activeOrderSnapshot')
 const {
   CHANNELS,
   CONSUMER_GROUPS,
   ORDER_STATUS,
+  ORDER_TYPE,
 } = require('../config/trading')
 
 // 订单状态 Stream 用独立消费者组（与成交 Stream 分开，各自 ACK）
@@ -26,6 +28,19 @@ function toFieldsObject(fields) {
     obj[fields[i]] = fields[i + 1]
   }
   return obj
+}
+
+/**
+ * 阶段 6 容灾：成交后同步活跃限价单快照
+ * - 全部成交 → 移除快照（已离开订单簿）
+ * - 部分成交 → 更新已成交量（仅限价单在簿；市价单无快照，跳过避免产生孤儿 Hash）
+ */
+async function syncActive(ord, newFilled, newStatus) {
+  if (newStatus === ORDER_STATUS.FILLED) {
+    await activeSnapshot.removeActive(ord.id)
+  } else if (Number(ord.order_type) === ORDER_TYPE.LIMIT) {
+    await activeSnapshot.updateFilled(ord.id, newFilled)
+  }
 }
 
 /**
@@ -185,7 +200,11 @@ async function settleTrade(fields) {
 
     await conn.commit()
 
-    // 7. WS 推送成交给买卖双方（best-effort）
+    // 7. 阶段 6 容灾：同步活跃限价单快照（部分成交更新已成交量，全成成交移除）
+    await syncActive(buyOrder, buyNewFilled, buyNewStatus)
+    await syncActive(sellOrder, sellNewFilled, sellNewStatus)
+
+    // 8. WS 推送成交给买卖双方（best-effort）
     const tradeView = {
       trade_no: tradeNo, symbol, price, quantity: fillQty, amount,
       buy_order_id: buyOrderId, sell_order_id: sellOrderId,
@@ -262,6 +281,10 @@ async function settleOrderStatus(fields) {
     )
 
     await conn.commit()
+
+    // 阶段 6 容灾：撤单/拒绝已离开订单簿，移除活跃快照
+    await activeSnapshot.removeActive(orderId)
+
     console.log(`[status] 订单 #${orderId} ${reason} 释放 ${unfilledQty} 股/资金`)
     hub.sendToUser(userId, { type: 'order_status', data: { order_id: orderId, status, reason } })
   } catch (err) {

@@ -1,6 +1,7 @@
 const PositionModel = require('../models/positionModel')
 const OrderModel = require('../models/orderModel')
 const TradeModel = require('../models/tradeModel')
+const RiskLogModel = require('../models/riskLogModel')
 const orderService = require('../services/orderService')
 
 /**
@@ -72,6 +73,32 @@ const tradingController = {
     try {
       const trades = await TradeModel.findByUserId(req.user.id)
       res.json({ code: 0, message: 'success', data: trades })
+    } catch (error) {
+      next(error)
+    }
+  },
+
+  // 风控日志（阶段 6）：查询当前用户的风控拒绝记录，可按 action/rule 过滤
+  async getRiskLogs(req, res, next) {
+    try {
+      const { action, rule, page, pageSize } = req.query
+      const logs = await RiskLogModel.findByUserId(req.user.id, {
+        action: action || undefined,
+        rule: rule || undefined,
+        page: page ? Number(page) : 1,
+        pageSize: pageSize ? Number(pageSize) : 50,
+      })
+      res.json({ code: 0, message: 'success', data: logs })
+    } catch (error) {
+      next(error)
+    }
+  },
+
+  // 风控日志按 rule 聚合统计（阶段 6 概览）
+  async getRiskLogsSummary(req, res, next) {
+    try {
+      const summary = await RiskLogModel.countByRule(req.user.id)
+      res.json({ code: 0, message: 'success', data: summary })
     } catch (error) {
       next(error)
     }

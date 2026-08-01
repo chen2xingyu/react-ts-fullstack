@@ -22,4 +22,8 @@ router.post('/orders', tradingController.placeOrder)
 router.post('/orders/:id/cancel', tradingController.cancelOrder)
 router.get('/trades', tradingController.getTrades)
 
+// 风控日志（阶段 6）
+router.get('/risk-logs', tradingController.getRiskLogs)
+router.get('/risk-logs/summary', tradingController.getRiskLogsSummary)
+
 module.exports = router

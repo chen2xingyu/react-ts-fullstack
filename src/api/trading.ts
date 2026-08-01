@@ -7,6 +7,8 @@ import type {
   Trade,
   Quote,
   Kline,
+  RiskLog,
+  RiskLogSummary,
 } from '@/types/trading'
 
 // 股票列表
@@ -65,4 +67,19 @@ export function getQuote(symbol: string) {
 // K线历史
 export function getKlines(symbol: string, params?: { period?: string; limit?: number }) {
   return http.get<Kline[]>(`/trading/klines/${symbol}`, { params }).then((r) => r.data)
+}
+
+// 风控日志（阶段 6）：查询当前用户的风控拒绝记录
+export function getRiskLogs(params?: {
+  action?: string
+  rule?: string
+  page?: number
+  pageSize?: number
+}) {
+  return http.get<RiskLog[]>('/trading/risk-logs', { params }).then((r) => r.data)
+}
+
+// 风控日志按 rule 聚合统计
+export function getRiskLogsSummary() {
+  return http.get<RiskLogSummary[]>('/trading/risk-logs/summary').then((r) => r.data)
 }

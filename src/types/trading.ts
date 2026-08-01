@@ -120,3 +120,40 @@ export interface Kline {
   volume: number
   amount: number
 }
+
+// 风控日志（阶段 6）
+export interface RiskLog {
+  id: number
+  user_id: number
+  symbol: string | null
+  action: string // 'order' | 'cancel'
+  rule: string // bad_side / no_cash / price_limit ...
+  detail: string | null
+  created_at: string
+}
+
+export interface RiskLogSummary {
+  rule: string
+  cnt: number
+}
+
+// 风控规则中文标签（与后端 orderService rejectRisk rule 对齐）
+export const RISK_RULE_LABELS: Record<string, string> = {
+  bad_side: '方向无效',
+  bad_type: '类型无效',
+  bad_qty: '数量非法',
+  bad_symbol: '标的不存在',
+  lot_size: '手数不符',
+  bad_price: '价格无效',
+  price_limit: '涨跌停限制',
+  no_cash: '资金不足',
+  no_position: '持仓不足',
+  duplicate: '重复提交',
+  not_found: '委托不存在',
+  bad_status: '状态不可撤',
+}
+
+export const RISK_ACTION_LABELS: Record<string, string> = {
+  order: '下单',
+  cancel: '撤单',
+}

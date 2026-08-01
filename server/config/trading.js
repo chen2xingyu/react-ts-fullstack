@@ -48,6 +48,9 @@ const CHANNELS = {
   PUB_USER_NOTIFY: (userId) => `ch:user:${userId}:notify`,
   HASH_QUOTE_TICK: (symbol) => `quote:tick:${symbol}`,
   HASH_STOCKS: 'trading:stocks',
+  // 阶段 6 容灾：活跃限价单快照（撮合引擎重启重建簿用）
+  SET_ORDERS_ACTIVE: 'orders:active', // SET：所有在簿活跃限价单 id
+  HASH_ORDER_ACTIVE: (orderId) => `orders:active:${orderId}`, // 单单 Hash：重建所需的全部字段
 }
 
 // 消费者组

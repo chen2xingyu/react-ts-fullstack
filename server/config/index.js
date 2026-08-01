@@ -13,4 +13,9 @@ module.exports = {
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'react-ts-fullstack-access-secret-key-2026',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'react-ts-fullstack-refresh-secret-key-2026',
+    issuer: 'react-ts-fullstack',
+  },
 }

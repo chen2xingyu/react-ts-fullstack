@@ -15,6 +15,7 @@
 - **12 类风控全留痕**：涨跌停/手数/资金/持仓/重复提交/撤单状态等拒绝均写入 `risk_logs`，可查可审计
 - **TypeScript 100% 覆盖**：前后端共享 `ApiResponse<T>` 泛型契约，编译期拦截类型错误
 - **真实行情可接入**：默认几何布朗运动模拟，`MARKET_SOURCE=real` 一键切新浪真实 A 股行情（交易时段实时价 + 非交易时段以真实收盘价 GBM 降级）
+- **在线 Python 运行器**：`/runner` 页面粘贴 DeepSeek 给的代码即可运行出真实结果，后端 `child_process` spawn 本机 Python（已装 akshare/pandas），支持条件选股等场景
 
 ---
 
@@ -43,14 +44,14 @@
 | **Python** | 行情生成（随机游走+均值回归）、1m K 线聚合、订单簿、撮合（价格优先+时间优先）、五档快照 |
 | **Node.js** | REST API、WS 网关（JWT 鉴权+订阅路由）、前置风控、资金/持仓冻结与结算、成交回报事务落库 |
 | **Redis** | 订单/成交 Stream（可靠不丢）、行情 Pub/Sub、行情 Hash 缓存、活跃订单快照、消费者组 |
-| **前端** | K 线图（lightweight-charts）、五档盘口、下单面板、委托/持仓/成交/资金表、风控日志、WS 客户端 |
+| **前端** | K 线图（lightweight-charts）、五档盘口、下单面板、委托/持仓/成交/资金表、风控日志、Python 代码运行器、WS 客户端 |
 
 ---
 
 ## 🛠️ 技术栈
 
 ### 前端
-React 18 · TypeScript 5.5 · Vite 5 · React Router 6 · Zustand · TanStack Query · Axios · Tailwind CSS · lightweight-charts
+React 18 · TypeScript 5.5 · Vite 5 · React Router 6 · Zustand · TanStack Query · Axios · Tailwind CSS · lightweight-charts · react-simple-code-editor + prismjs
 
 ### 后端
 Node.js · Express 4 · MySQL2（连接池+预处理）· Redis（ioredis）· WebSocket（ws）· JWT · Joi · Morgan
@@ -80,7 +81,8 @@ reactTs/
 │   │   ├── OrderList.tsx         # 委托列表（可撤单）
 │   │   ├── TradeList.tsx         # 成交列表
 │   │   └── RiskLogList.tsx       # 风控日志
-│   └── pages/trading/TradingPage.tsx
+│   ├── pages/trading/TradingPage.tsx
+│   └── pages/PythonRunner.tsx    # Python 代码运行器
 │
 ├── server/                       # Node.js 后端
 │   ├── config/{db,redis,trading}.js
@@ -90,7 +92,8 @@ reactTs/
 │   ├── services/
 │   │   ├── orderService.js       # 风控+冻结+落单+投递（rejectRisk 统一留痕）
 │   │   ├── tradeConsumer.js      # 成交回报事务结算
-│   │   └── activeOrderSnapshot.js# 活跃订单快照（容灾）
+│   │   ├── activeOrderSnapshot.js# 活跃订单快照（容灾）
+│   │   └── pythonRunnerService.js# spawn python 执行用户代码
 │   ├── ws/                       # WebSocket 网关
 │   └── scripts/                  # 建表+种子+端到端验证脚本
 │
@@ -181,7 +184,7 @@ npm run dev                      # 启动 :5173
 |---|---|
 | test@example.com | test123 |
 
-登录后进入交易页 http://localhost:5173/trading ，即可看到实时滚动 K 线、五档盘口，下单/撤单/成交/风控日志全链路联动。其它页面：`/users`（用户 CRUD 演示）、`/project`（项目经历展示）。
+登录后进入交易页 http://localhost:5173/trading ，即可看到实时滚动 K 线、五档盘口，下单/撤单/成交/风控日志全链路联动。其它页面：`/runner`（Python 代码运行器，粘贴 DeepSeek 给的代码即运行出真实结果）、`/users`（用户 CRUD 演示）、`/project`（项目经历展示）。
 
 ---
 

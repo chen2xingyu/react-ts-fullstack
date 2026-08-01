@@ -85,6 +85,14 @@ const frontendTechs: TechItem[] = [
     icon: '🎨',
     color: 'from-cyan-500 to-teal-500',
   },
+  {
+    name: '代码编辑器',
+    version: 'react-simple-code-editor',
+    role: '在线代码运行',
+    highlight: 'prismjs Python 语法高亮编辑器，粘贴代码提交后端 spawn python 执行，返回真实结果',
+    icon: '📝',
+    color: 'from-fuchsia-500 to-pink-500',
+  },
 ]
 
 // ---------- 后端技术栈 ----------
@@ -152,6 +160,14 @@ const backendTechs: TechItem[] = [
     highlight: '12 类规则（涨跌停/手数/资金/持仓/幂等等），rejectRisk 统一出口全量留痕 risk_logs',
     icon: '🛡️',
     color: 'from-rose-500 to-red-600',
+  },
+  {
+    name: 'child_process',
+    version: 'Node 内置',
+    role: '代码执行',
+    highlight: 'spawn 调本机 Python 执行用户代码：临时文件 + 30s 超时 + 工作目录隔离，捕获 stdout/stderr',
+    icon: '🐍',
+    color: 'from-lime-500 to-green-500',
   },
 ]
 
@@ -249,6 +265,11 @@ const engineeringHighlights = [
     desc: '前后端共享 ApiResponse<T> 泛型，交易实体类型对齐，TS 编译期拦截类型错误，零 any 逃逸',
     icon: '🔒',
   },
+  {
+    title: '在线 Python 运行器',
+    desc: '浏览器粘贴 Python 代码→Node spawn 执行→真实结果（条件选股/数据分析），复用 akshare/pandas 环境拉真实 A 股',
+    icon: '🐍',
+  },
 ]
 
 // ---------- 面试知识点 ----------
@@ -329,13 +350,13 @@ const interviewPoints: InterviewPoint[] = [
 
 // ---------- 项目数据指标 ----------
 const projectMetrics = [
-  { label: '技术栈', value: '24', unit: '个' },
-  { label: 'API 接口', value: '20', unit: '+' },
+  { label: '技术栈', value: '26', unit: '个' },
+  { label: 'API 接口', value: '22', unit: '+' },
   { label: '交易数据表', value: '8', unit: '张' },
   { label: 'Redis 通道', value: '10', unit: '+' },
   { label: '风控规则', value: '12', unit: '类' },
   { label: '交付阶段', value: '6', unit: '个' },
-  { label: '代码规模', value: '7000', unit: '+行' },
+  { label: '代码规模', value: '7500', unit: '+行' },
   { label: 'TS 覆盖率', value: '100', unit: '%' },
 ]
 
@@ -648,6 +669,23 @@ async function rejectRisk({ userId, symbol,
 }
 // 12 类拒绝全留痕，前端可查可聚合`}</code></pre>
           </div>
+
+          {/* Python 运行器 */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-gray-900">🐍 在线 Python 运行器</h3>
+              <span className="text-xs bg-lime-100 text-lime-700 px-2 py-1 rounded">后端·执行</span>
+            </div>
+            <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-x-auto leading-relaxed"><code>{`// spawn 调本机 Python 执行用户提交的代码
+const proc = spawn(PYTHON, [tmpFile], {
+  cwd: os.tmpdir(),
+  env: { ...process.env,
+    PYTHONIOENCODING: 'utf-8' },
+  windowsHide: true,
+})
+// 写临时文件 + 30s 超时 + 捕获 stdout/stderr
+// 前端编辑器提交 → 返回真实结果（选股/分析）`}</code></pre>
+          </div>
         </div>
       </section>
 
@@ -750,6 +788,10 @@ async function rejectRisk({ userId, symbol,
                 <li className="flex items-start gap-2">
                   <span className="text-primary-500 mt-0.5">▸</span>
                   12 类风控全留痕 + 撤单链路 + 五档联动点价填单
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary-500 mt-0.5">▸</span>
+                  在线 Python 运行器：粘贴代码即运行，拉真实 A 股条件选股
                 </li>
               </ul>
             </div>

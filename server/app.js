@@ -1,9 +1,14 @@
+const http = require('http')
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const config = require('./config')
 const routes = require('./routes')
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler')
+const { setupWS } = require('./ws')
+const { refreshStockCache } = require('./services/stockCache')
+const { startMarketPublisher } = require('./services/marketPublisher')
+const { startTradeConsumer, startOrderStatusConsumer } = require('./services/tradeConsumer')
 
 const app = express()
 
@@ -34,9 +39,23 @@ const startServer = async () => {
     await pool.getConnection()
     console.log('✅ 数据库连接成功')
 
-    app.listen(config.port, () => {
+    // HTTP + WebSocket 共用一个 server
+    const server = http.createServer(app)
+    setupWS(server)
+
+    server.listen(config.port, () => {
       console.log(`🚀 服务启动: http://localhost:${config.port}`)
       console.log(`📡 API 文档: http://localhost:${config.port}/api/health`)
+      console.log(`🔌 WebSocket: ws://localhost:${config.port}/ws`)
+
+      // 行情相关服务：Redis 不可用时降级，不阻塞主服务
+      refreshStockCache().catch((e) =>
+        console.warn('⚠️ 股票缓存刷新失败（Redis 可能未启动）:', e.message)
+      )
+      startMarketPublisher()
+      // 成交回报 / 订单状态消费者（阶段 4 撮合结算）
+      startTradeConsumer()
+      startOrderStatusConsumer()
     })
   } catch (error) {
     console.error('❌ 启动失败:', error.message)

@@ -18,6 +18,7 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+.trae/
 .DS_Store
 *.suo
 *.ntvs*
@@ -30,6 +31,7 @@ dist-ssr
 .env.local
 .env.*.local
 server/.env
+trading-engine/.env
 
 # Build output
 build
@@ -41,4 +43,8 @@ miniprogram/._cache
 # Taro
 miniprogram/.swc
 miniprogram/.taro-cache
+
+# Python
+__pycache__/
+*.pyc
 

@@ -1,42 +1,88 @@
-import { NavLink } from 'react-router-dom'
-import { useCounterStore } from '@/store'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/auth'
 
 export default function Navbar() {
-  const count = useCounterStore((state) => state.count)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    isActive
-      ? 'text-primary-600 font-semibold'
-      : 'text-gray-600 hover:text-primary-500 transition-colors'
+    `text-sm font-medium transition-colors hover:text-primary-600 ${
+      isActive ? 'text-primary-600' : 'text-gray-600'
+    }`
+
+  const handleLogout = () => {
+    logout()
+    navigate('/', { replace: true })
+  }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        <div className="flex items-center space-x-8">
-          <span className="text-xl font-bold text-primary-600">ReactTS</span>
-          <nav className="flex space-x-6">
-            <NavLink to="/" className={linkClass}>
-              首页
+    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center gap-8">
+            <NavLink to="/" className="flex items-center gap-2">
+              <span className="text-2xl">⚛️</span>
+              <span className="font-bold text-lg text-gray-900">React+TS 工程</span>
             </NavLink>
-            <NavLink to="/project" className={linkClass}>
-              项目经历
-            </NavLink>
-            <NavLink to="/about" className={linkClass}>
-              关于
-            </NavLink>
-            <NavLink to="/users" className={linkClass}>
-              用户
-            </NavLink>
-            <NavLink to="/interview" className={linkClass}>
-              面试
-            </NavLink>
-          </nav>
-        </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <span>状态计数:</span>
-          <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded font-mono">
-            {count}
-          </span>
+            <nav className="flex space-x-6">
+              <NavLink to="/" className={linkClass}>
+                首页
+              </NavLink>
+              <NavLink to="/project" className={linkClass}>
+                项目经历
+              </NavLink>
+              <NavLink to="/about" className={linkClass}>
+                关于
+              </NavLink>
+              <NavLink to="/users" className={linkClass}>
+                用户
+              </NavLink>
+              <NavLink to="/interview" className={linkClass}>
+                面试
+              </NavLink>
+              {isAuthenticated && (
+                <NavLink to="/trading" className={linkClass}>
+                  交易
+                </NavLink>
+              )}
+            </nav>
+          </div>
+
+          {/* 认证状态 */}
+          <div className="flex items-center gap-3">
+            {isAuthenticated && user ? (
+              <>
+                {/* 用户信息 */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-gray-900">{user.name}</span>
+                    <span className="text-gray-400 ml-1">·</span>
+                    <span className="text-gray-500 ml-1 text-xs">{user.company || '游客'}</span>
+                  </div>
+                </div>
+                {/* 退出按钮 */}
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+                >
+                  退出
+                </button>
+              </>
+            ) : (
+              <NavLink
+                to="/login"
+                className="btn-primary text-sm !py-1.5 !px-4"
+              >
+                登录 / 注册
+              </NavLink>
+            )}
+          </div>
         </div>
       </div>
     </header>

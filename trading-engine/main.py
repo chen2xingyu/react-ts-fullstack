@@ -47,7 +47,7 @@ async def main():
     publisher = MarketPublisher(redis)
     generator = MarketGenerator(redis, publisher)
     stocks = await generator.load_stocks()
-    print(f'[generator] 加载 {len(stocks)} 只股票，开始生成行情...')
+    print(f'[generator] 加载 {len(stocks)} 只股票')
 
     # 撮合
     producer = TradeProducer(redis)
@@ -61,12 +61,23 @@ async def main():
     consumer = OrderConsumer(redis, engine)
     cancel_consumer = CancelConsumer(redis, engine)
 
-    market_tasks = [generator.run_one(s) for s in stocks]
+    # 行情源切换：MARKET_SOURCE=real 用 AKShare 真实行情（非交易时段 GBM 降级）；
+    # 默认 sim 用几何布朗运动模拟
+    market_source = os.getenv('MARKET_SOURCE', 'sim').lower()
+    if market_source == 'real':
+        from engine.realtime_source import RealtimeMarketSource
+        source = RealtimeMarketSource(redis, publisher)
+        market_task = source.run(stocks)
+        print('[main] 行情源：AKShare 真实行情（交易时段拉东财，非交易时段 GBM 降级）')
+    else:
+        market_task = asyncio.gather(*[generator.run_one(s) for s in stocks])
+        print('[main] 行情源：几何布朗运动模拟（MARKET_SOURCE=real 可切换真实行情）')
+
     match_task = consumer.run()
     cancel_task = cancel_consumer.run()
 
-    # 行情（每只股票一个协程）+ 撮合 + 撤单（阶段 5）并行
-    await asyncio.gather(*market_tasks, match_task, cancel_task)
+    # 行情 + 撮合 + 撤单（阶段 5）并行
+    await asyncio.gather(market_task, match_task, cancel_task)
 
 
 if __name__ == '__main__':

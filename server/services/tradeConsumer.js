@@ -137,7 +137,12 @@ async function settleTrade(fields) {
     const buyNewAvg = Number(
       ((Number(buyOrder.avg_fill_price) * Number(buyOrder.filled_quantity) + price * fillQty) / buyNewFilled).toFixed(4)
     )
-    const buyNewStatus = buyNewFilled >= Number(buyOrder.quantity) ? ORDER_STATUS.FILLED : ORDER_STATUS.PARTIAL
+    // 阶段 5 竞态守卫：撤单事件可能先于在途成交回报到达并置 CANCELED，
+    // 此时迟到的成交仍要记账（资金按比例释放已守恒），但不应把终态“复活”成部分成交；
+    // 仅当累计成交达满量时才升为 FILLED（真实全部成交）。
+    const buyNewStatus = buyNewFilled >= Number(buyOrder.quantity)
+      ? ORDER_STATUS.FILLED
+      : (Number(buyOrder.status) === ORDER_STATUS.CANCELED ? ORDER_STATUS.CANCELED : ORDER_STATUS.PARTIAL)
     await conn.query(
       `UPDATE orders SET filled_quantity = ?, avg_fill_price = ?, status = ? WHERE id = ?`,
       [buyNewFilled, buyNewAvg, buyNewStatus, buyOrderId]
@@ -169,7 +174,10 @@ async function settleTrade(fields) {
     const sellNewAvg = Number(
       ((Number(sellOrder.avg_fill_price) * Number(sellOrder.filled_quantity) + price * fillQty) / sellNewFilled).toFixed(4)
     )
-    const sellNewStatus = sellNewFilled >= Number(sellOrder.quantity) ? ORDER_STATUS.FILLED : ORDER_STATUS.PARTIAL
+    // 阶段 5 竞态守卫：同买方，避免迟到成交复活已撤卖单
+    const sellNewStatus = sellNewFilled >= Number(sellOrder.quantity)
+      ? ORDER_STATUS.FILLED
+      : (Number(sellOrder.status) === ORDER_STATUS.CANCELED ? ORDER_STATUS.CANCELED : ORDER_STATUS.PARTIAL)
     await conn.query(
       `UPDATE orders SET filled_quantity = ?, avg_fill_price = ?, status = ? WHERE id = ?`,
       [sellNewFilled, sellNewAvg, sellNewStatus, sellOrderId]

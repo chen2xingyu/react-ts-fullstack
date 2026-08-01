@@ -43,3 +43,26 @@ class MatchingEngine:
 
         # incoming 限价单若已全部成交，无需额外事件（Node 据成交累计推导状态）
         return trades, cancels
+
+    async def on_cancel(self, order_id, user_id, symbol):
+        """处理用户撤单（阶段 5）：从簿中移除挂单 → 产出 status 事件
+
+        引擎是订单簿的唯一权威：unfilled_qty 取自簿中剩余量（撮合中递减过的
+        order.quantity），而非后端 DB 的 filled_quantity（可能因成交回报在途而滞后）。
+        - 找到并撤销（unfilled>0）：写 stream:orders:status，Node 释放冻结 + 置 CANCELED
+        - 未在簿中（unfilled=0，已成交/已撤）：不产出事件，委托单状态由成交回报推导
+        """
+        book = self._book(symbol)
+        unfilled = book.cancel(order_id)
+        if unfilled > 0:
+            await self.producer.publish_order_status(
+                order_id=order_id,
+                user_id=user_id,
+                status=3,  # CANCELED
+                unfilled_qty=unfilled,
+                reason='user_cancel',
+            )
+            print(f'[matcher] 撤单 #{order_id} {symbol} 释放剩余 {unfilled}')
+        else:
+            print(f'[matcher] 撤单 #{order_id} {symbol} 未在簿中（已成交/已撤），跳过')
+        return unfilled

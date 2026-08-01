@@ -8,13 +8,18 @@ function fmt(n: number) {
  * 五档盘口
  * A股惯例：卖盘在上（绿），买盘在下（红），中间为最新价
  * depth.asks[0] / bids[0] 最接近中间价
+ *
+ * 阶段 5：点价联动 —— 点击任一档位价格，回调 onPickPrice，
+ * 由父页面透传给 OrderForm 自动填入委托价（并切到限价模式）。
  */
 export default function DepthBook({
   depth,
   lastPrice,
+  onPickPrice,
 }: {
   depth: Depth | null
   lastPrice?: number
+  onPickPrice?: (price: number) => void
 }) {
   const asks = depth?.asks ?? []
   const bids = depth?.bids ?? []
@@ -32,7 +37,14 @@ export default function DepthBook({
     qty: number
     color: string
   }) => (
-    <div className="flex items-center text-sm py-1 px-2">
+    <div
+      // 阶段 5：点价填单 —— 点击价格回调父组件
+      onClick={() => onPickPrice?.(price)}
+      title={onPickPrice ? '点击填入委托价' : undefined}
+      className={`flex items-center text-sm py-1 px-2 rounded ${
+        onPickPrice ? 'cursor-pointer hover:bg-primary-50 transition' : ''
+      }`}
+    >
       <span className="w-10 text-gray-400">{label}</span>
       <span className={`flex-1 font-mono ${color}`}>{fmt(price)}</span>
       <span className="flex-1 text-right text-gray-600 font-mono">{qty}</span>

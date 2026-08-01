@@ -173,3 +173,34 @@ class OrderBook:
             qty = sum(o.quantity for o in self.asks[p])
             asks.append([p, qty])
         return {'bids': bids, 'asks': asks}
+
+    def cancel(self, order_id):
+        """撤销订单簿中指定挂单（阶段 5 用户撤单）
+
+        在 bids/asks 中按 order_id 查找活跃挂单，找到则移除并返回其剩余未成交量
+        （order.quantity 在撮合过程中递减，即为可撤余额）；未找到返回 0。
+
+        返回 0 的场景：订单已全部成交离开簿、或本就是已撤/未挂簿的市价单余额，
+        此时不应产出 status 事件——委托单的真实状态由成交回报自然推导。
+
+        @return: 实际撤销的剩余数量；未在簿中返回 0
+        """
+        for is_buy, book, prices in (
+            (True, self.bids, self.bid_prices),
+            (False, self.asks, self.ask_prices),
+        ):
+            for price in list(book.keys()):
+                lvl = book[price]
+                for i, o in enumerate(lvl):
+                    if o.order_id == order_id and o.active:
+                        del lvl[i]
+                        o.active = False
+                        unfilled = o.quantity
+                        # 价位空了则清理价格索引
+                        if not lvl:
+                            del book[price]
+                            idx = bisect.bisect_left(prices, price)
+                            if idx < len(prices) and prices[idx] == price:
+                                prices.pop(idx)
+                        return unfilled
+        return 0

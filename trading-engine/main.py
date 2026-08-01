@@ -13,6 +13,7 @@ from transport.redis_client import get_redis
 from transport.market_publisher import MarketPublisher
 from transport.trade_producer import TradeProducer
 from transport.order_consumer import OrderConsumer
+from transport.cancel_consumer import CancelConsumer
 from engine.market_generator import MarketGenerator
 from engine.matching_engine import MatchingEngine
 
@@ -35,12 +36,14 @@ async def main():
     producer = TradeProducer(redis)
     engine = MatchingEngine(producer)
     consumer = OrderConsumer(redis, engine)
+    cancel_consumer = CancelConsumer(redis, engine)
 
     market_tasks = [generator.run_one(s) for s in stocks]
     match_task = consumer.run()
+    cancel_task = cancel_consumer.run()
 
-    # 行情（每只股票一个协程）+ 撮合（单消费者协程）并行
-    await asyncio.gather(*market_tasks, match_task)
+    # 行情（每只股票一个协程）+ 撮合 + 撤单（阶段 5）并行
+    await asyncio.gather(*market_tasks, match_task, cancel_task)
 
 
 if __name__ == '__main__':

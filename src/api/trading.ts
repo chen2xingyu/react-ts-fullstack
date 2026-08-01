@@ -45,6 +45,13 @@ export function placeOrder(data: {
   return http.post<Order>('/trading/orders', data).then((r) => r.data)
 }
 
+// 撤单（阶段 5）：投递撤单指令到撮合引擎，引擎权威产出 status 事件
+export function cancelOrder(orderId: number) {
+  return http
+    .post<{ order_id: number; status: string }>(`/trading/orders/${orderId}/cancel`)
+    .then((r) => r.data)
+}
+
 // 成交列表
 export function getTrades() {
   return http.get<Trade[]>('/trading/trades').then((r) => r.data)

@@ -218,4 +218,54 @@ async function placeOrder(userId, account, input) {
   return order
 }
 
-module.exports = { placeOrder, RiskError }
+/**
+ * 撤单主流程（阶段 5）：校验 → 投递撤单指令到撮合引擎
+ *
+ * 设计要点：
+ * - 不在此处直接释放冻结/改状态：撮合引擎是订单簿的唯一权威，
+ *   由它决定“还能撤多少”（unfilled_qty），再经 stream:orders:status
+ *   由 tradeConsumer.settleOrderStatus 事务释放冻结 + 置 CANCELED。
+ * - 此处仅做“能否撤”的前置校验 + 投递 stream:orders:cancel，
+ *   引擎收到后从簿中移除并产出 status 事件。
+ * - 若订单已不在簿中（已全部成交/已被撤），引擎不产出事件，
+ *   委托单的最终状态由成交回报自然推导，前端轮询可见真实结果。
+ *
+ * @param {number} userId
+ * @param {number} orderId
+ * @returns {Promise<{order_id:number, status:string}>}
+ */
+async function cancelOrder(userId, orderId) {
+  // 1. 查单 + 归属校验
+  const order = await OrderModel.findById(orderId)
+  if (!order || Number(order.user_id) !== Number(userId)) {
+    throw new RiskError('not_found', '委托单不存在')
+  }
+
+  // 2. 状态校验：仅待成交/部分成交可撤
+  const st = Number(order.status)
+  if (st !== ORDER_STATUS.PENDING && st !== ORDER_STATUS.PARTIAL) {
+    throw new RiskError(
+      'bad_status',
+      `委托单当前状态（${st}）不可撤销，仅待成交/部分成交可撤`
+    )
+  }
+
+  // 3. 投递撤单指令（引擎权威：据簿中剩余量产出 status 事件）
+  try {
+    await redis.xadd(
+      CHANNELS.STREAM_ORDERS_CANCEL,
+      '*',
+      'order_id', String(order.id),
+      'user_id', String(userId),
+      'symbol', order.symbol
+    )
+  } catch (e) {
+    console.warn('⚠️ 撤单投递 Redis Stream 失败:', e.message)
+    throw new Error('撤单请求投递失败，请稍后重试')
+  }
+
+  console.log(`[cancel] 用户 ${userId} 撤单 #${orderId} ${order.symbol} 已投递引擎`)
+  return { order_id: orderId, status: 'canceling' }
+}
+
+module.exports = { placeOrder, cancelOrder, RiskError }

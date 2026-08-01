@@ -1,8 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { placeOrder } from '@/api/trading'
 import { ORDER_SIDE, ORDER_TYPE } from '@/types/trading'
 import type { Stock, Account, Position } from '@/types/trading'
+
+/**
+ * 阶段 5：五档点价填单的外部输入
+ * - value：点击的价位
+ * - nonce：每次点击自增，确保“连点同一档”也能触发 effect（同值不重渲染）
+ */
+export interface PickedPrice {
+  value: number
+  nonce: number
+}
 
 /**
  * 下单面板
@@ -17,12 +27,14 @@ export default function OrderForm({
   lastPrice,
   account,
   positions,
+  pickedPrice,
 }: {
   symbol?: string
   stock?: Stock
   lastPrice?: number
   account?: Account
   positions?: Position[]
+  pickedPrice?: PickedPrice
 }) {
   const qc = useQueryClient()
   const [side, setSide] = useState<number>(ORDER_SIDE.BUY)
@@ -33,6 +45,14 @@ export default function OrderForm({
   })
   const [quantity, setQuantity] = useState<string>('')
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  // 阶段 5：五档点价 → 自动填入委托价并切到限价模式（nonce 保证同价可重复触发）
+  useEffect(() => {
+    if (pickedPrice) {
+      setPrice(String(pickedPrice.value))
+      setOrderType(ORDER_TYPE.LIMIT)
+    }
+  }, [pickedPrice])
 
   const lotSize = Number(stock?.lot_size) || 100
   const feeRate = Number(account?.fee_rate) || 0

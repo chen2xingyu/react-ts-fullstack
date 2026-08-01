@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AccountBar from '@/components/trading/AccountBar'
 import KLineChart from '@/components/trading/KLineChart'
 import DepthBook from '@/components/trading/DepthBook'
-import OrderForm from '@/components/trading/OrderForm'
+import OrderForm, { type PickedPrice } from '@/components/trading/OrderForm'
 import OrderList from '@/components/trading/OrderList'
 import TradeList from '@/components/trading/TradeList'
-import { useMarketSocket, type Tick } from '@/hooks/useMarketSocket'
+import { useMarketSocket, type Tick, type UserNotify } from '@/hooks/useMarketSocket'
 import { getAccount, getStocks, getPositions, getKlines } from '@/api/trading'
 import type { Stock, Position, Kline } from '@/types/trading'
 
@@ -18,6 +18,9 @@ import type { Stock, Position, Kline } from '@/types/trading'
  */
 export default function TradingPage() {
   const [symbol, setSymbol] = useState<string>('')
+  // 阶段 5：五档点价 → 下单面板（nonce 保证连点同一档也能触发填充）
+  const [pickedPrice, setPickedPrice] = useState<PickedPrice | undefined>()
+  const qc = useQueryClient()
 
   const { data: account, isLoading: accountLoading } = useQuery({
     queryKey: ['trading', 'account'],
@@ -37,6 +40,11 @@ export default function TradingPage() {
   const current = stocks?.find((s) => s.symbol === symbol) || stocks?.[0]
   const currentSymbol = current?.symbol
 
+  // 切换标的时清空点价（OrderForm 因 key 变化已重置内部价格）
+  useEffect(() => {
+    setPickedPrice(undefined)
+  }, [currentSymbol])
+
   // K线历史（首次拉取，后续由 WS 实时更新）
   const { data: klineHistory } = useQuery<Kline[]>({
     queryKey: ['trading', 'klines', currentSymbol],
@@ -45,7 +53,28 @@ export default function TradingPage() {
   })
 
   // 实时行情
-  const { connected, tick, kline, depth } = useMarketSocket(currentSymbol)
+  const { connected, tick, kline, depth } = useMarketSocket(currentSymbol, handleNotify)
+
+  // 阶段 5：五档点价 → 写入 pickedPrice（nonce 自增，连点同价也能触发 effect）
+  const handlePickPrice = (price: number) => {
+    setPickedPrice({ value: price, nonce: Date.now() })
+  }
+
+  // 阶段 5：收到撤单/成交通知 → 即时失效相关查询（无需等 3s 轮询）
+  function handleNotify(n: UserNotify) {
+    if (n.type === 'order_status') {
+      // 撤单状态变更：委托 + 资金 + 持仓都可能变
+      qc.invalidateQueries({ queryKey: ['trading', 'orders'] })
+      qc.invalidateQueries({ queryKey: ['trading', 'account'] })
+      qc.invalidateQueries({ queryKey: ['trading', 'positions'] })
+    } else if (n.type === 'trade') {
+      // 成交回报：委托 + 成交 + 资金 + 持仓
+      qc.invalidateQueries({ queryKey: ['trading', 'orders'] })
+      qc.invalidateQueries({ queryKey: ['trading', 'trades'] })
+      qc.invalidateQueries({ queryKey: ['trading', 'account'] })
+      qc.invalidateQueries({ queryKey: ['trading', 'positions'] })
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -90,7 +119,7 @@ export default function TradingPage() {
         <div className="card lg:col-span-2">
           <KLineChart symbol={currentSymbol} kline={kline} history={klineHistory ?? []} />
         </div>
-        <DepthBook depth={depth} lastPrice={tick?.price} />
+        <DepthBook depth={depth} lastPrice={tick?.price} onPickPrice={handlePickPrice} />
       </div>
 
       {/* 下单 + 委托（阶段 3） */}
@@ -102,6 +131,7 @@ export default function TradingPage() {
           lastPrice={tick?.price}
           account={account}
           positions={positions}
+          pickedPrice={pickedPrice}
         />
         <div className="lg:col-span-2">
           <OrderList />

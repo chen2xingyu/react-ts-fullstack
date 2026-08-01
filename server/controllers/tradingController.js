@@ -76,6 +76,23 @@ const tradingController = {
       next(error)
     }
   },
+
+  // 撤单（阶段 5）：校验 → 投递撤单指令到撮合引擎 → 引擎权威产出 status 事件
+  async cancelOrder(req, res, next) {
+    try {
+      const orderId = Number(req.params.id)
+      if (!orderId) {
+        return res.json({ code: 1, message: '参数缺失：id' })
+      }
+      const result = await orderService.cancelOrder(req.user.id, orderId)
+      res.json({ code: 0, message: '撤单请求已提交，等待撮合引擎处理', data: result })
+    } catch (error) {
+      if (error.isRisk) {
+        return res.json({ code: 1, message: `撤单失败：${error.message}` })
+      }
+      next(error)
+    }
+  },
 }
 
 module.exports = tradingController

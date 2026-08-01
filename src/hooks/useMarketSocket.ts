@@ -23,6 +23,11 @@ export interface MarketSocketState {
   depth: Depth | null
 }
 
+/** 用户私有通知（成交/订单状态变更），由后端 hub.sendToUser 推送 */
+export type UserNotify =
+  | { type: 'order_status'; data: { order_id: number; status: number; reason?: string } }
+  | { type: 'trade'; side: number; data: Record<string, unknown> }
+
 const RECONNECT_DELAYS = [1000, 2000, 3000, 5000]
 const HEARTBEAT_INTERVAL = 25000
 
@@ -32,8 +37,12 @@ const HEARTBEAT_INTERVAL = 25000
  * - 切换 symbol 自动退订/订阅
  * - 断线指数退避重连，重连后自动重订阅
  * - 25s 应用层心跳
+ * - onNotify：接收用户私有通知（成交/撤单状态），阶段 5 用于即时刷新委托/资金/持仓
  */
-export function useMarketSocket(symbol: string | undefined): MarketSocketState {
+export function useMarketSocket(
+  symbol: string | undefined,
+  onNotify?: (n: UserNotify) => void,
+): MarketSocketState {
   const [state, setState] = useState<MarketSocketState>({
     connected: false,
     tick: null,
@@ -43,9 +52,15 @@ export function useMarketSocket(symbol: string | undefined): MarketSocketState {
 
   const wsRef = useRef<WebSocket | null>(null)
   const symbolRef = useRef(symbol)
+  const notifyRef = useRef(onNotify)
   const reconnectAttempt = useRef(0)
   const reconnectTimer = useRef<number | null>(null)
   const heartbeatTimer = useRef<number | null>(null)
+
+  // 始终保持最新回调引用，避免 onNotify 变化触发重连 effect
+  useEffect(() => {
+    notifyRef.current = onNotify
+  }, [onNotify])
 
   // symbol 变化：更新引用 + 在已连接时退订旧/订阅新
   useEffect(() => {
@@ -102,6 +117,9 @@ export function useMarketSocket(symbol: string | undefined): MarketSocketState {
           setState((s) => ({ ...s, kline: msg.data as Kline }))
         } else if (msg.type === 'depth') {
           setState((s) => ({ ...s, depth: msg.data as Depth }))
+        } else if (msg.type === 'order_status' || msg.type === 'trade') {
+          // 用户私有通知：成交回报 / 撤单状态变更
+          notifyRef.current?.(msg as UserNotify)
         }
       }
 

@@ -1,0 +1,74 @@
+.container {
+  padding: 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border-radius: 12px;
+  padding: 24px 48px;
+  font-size: 30px;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  
+  &::after {
+    border: none;
+  }
+}
+
+.tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 24px;
+  font-size: 24px;
+  margin-right: 16px;
+}
+
+.tag-react { background: #dbeafe; color: #2563eb; }
+.tag-v8 { background: #fef3c7; color: #d97706; }
+.tag-network { background: #d1fae5; color: #059669; }
+.tag-engineering { background: #e0e7ff; color: #4f46e5; }
+.tag-typescript { background: #e0e7ff; color: #7c3aed; }
+.tag-css { background: #fce7f3; color: #db2777; }
+.tag-performance { background: #fff7ed; color: #ea580c; }
+.tag-security { background: #fee2e2; color: #dc2626; }
+
+.h1 { font-size: 48px; font-weight: 700; color: #1f2937; }
+.h2 { font-size: 36px; font-weight: 600; color: #1f2937; }
+.h3 { font-size: 32px; font-weight: 600; color: #374151; }
+.text-muted { color: #6b7280; font-size: 26px; }
+.text-sm { font-size: 24px; }
+.text-lg { font-size: 30px; }
+.text-center { text-align: center; }
+.text-primary { color: #3b82f6; }
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-center { align-items: center; justify-content: center; }
+.flex-between { justify-content: space-between; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-sm { gap: 16px; }
+.gap-md { gap: 24px; }
+.gap-lg { gap: 32px; }
+
+.mt-sm { margin-top: 16px; }
+.mt-md { margin-top: 24px; }
+.mt-lg { margin-top: 32px; }
+.mb-sm { margin-bottom: 16px; }
+.mb-md { margin-bottom: 24px; }
+.mb-lg { margin-bottom: 32px; }
+
+.difficulty-expert { color: #dc2626; font-weight: 600; }
+.difficulty-hard { color: #ea580c; font-weight: 600; }
+.difficulty-medium { color: #d97706; font-weight: 600; }

@@ -1,0 +1,122 @@
+.profile-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 24px;
+  padding: 40px 32px;
+  margin-bottom: 24px;
+}
+
+.avatar {
+  font-size: 96px;
+  margin-right: 28px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-name {
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.user-desc {
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stats-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.stats-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-num {
+  font-size: 44px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stats-label {
+  font-size: 24px;
+  color: #6b7280;
+}
+
+.stats-divider {
+  width: 1px;
+  height: 60px;
+  background: #e5e7eb;
+}
+
+.menu-list {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 32px 28px;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background: #f9fafb;
+  }
+}
+
+.menu-icon {
+  font-size: 36px;
+  margin-right: 24px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30px;
+  color: #1f2937;
+}
+
+.menu-arrow {
+  font-size: 28px;
+  color: #9ca3af;
+}
+
+.footer {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.footer-text {
+  display: block;
+  font-size: 26px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.footer-sub {
+  display: block;
+  font-size: 24px;
+  color: #9ca3af;
+}

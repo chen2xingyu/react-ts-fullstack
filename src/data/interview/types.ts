@@ -16,6 +16,9 @@ export interface InterviewQuestion {
 }
 
 export const categories = [
+  '交易系统',
+  'Python 异步',
+  '实时通信',
   'React 原理',
   'V8 & 浏览器',
   '网络与协议',

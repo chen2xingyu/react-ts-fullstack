@@ -218,4 +218,67 @@ setTimeout(() => {
       { title: 'React setState 批量更新原理 - CSDN', url: 'https://blog.csdn.net/zhangchenglong2/article/details/121716875', site: 'CSDN' },
     ],
   },
+  {
+    id: 'react-zustand-state',
+    category: 'React 原理',
+    difficulty: 'hard',
+    title: 'Zustand 状态管理如何工作？相比 Context/Redux 有什么优势？为什么 auth 状态用它？',
+    summary:
+      'Zustand 用闭包维护 store，组件通过 selector 订阅切片，set 更新触发精准重渲染。比 Context 无 Provider 嵌套且避免全树重渲染，比 Redux 样板少，适合 auth 这类全局高频读状态。',
+    answer: `## Zustand 核心原理
+1. **store 是闭包**：\`create()\` 返回一个 hook，内部用闭包维护 state
+2. **selector 订阅切片**：\`useStore(s => s.user)\` 只订阅 user，其他切片变化不触发重渲染
+3. **set 更新 + 发布**：\`set({ user })\` 更新 state 并通知所有订阅者，订阅者用 selector 取值比对决定是否重渲染
+4. **无 Provider**：store 是模块级单例，组件直接 import 使用，不需要包裹 Provider
+
+## 对比 Context
+| | Context | Zustand |
+|---|---|---|
+| Provider | 必须嵌套 | 不需要 |
+| 重渲染 | value 变化全树重渲染 | selector 精准订阅 |
+| 性能 | 大 state 拖累 | 切片订阅高效 |
+| 学习成本 | 低 | 低 |
+
+Context 的痛点：Context value 任何变化，所有 useContext 消费者全部重渲染，即使只用其中一字段。auth 状态（user/token/isAuthenticated）变化频繁，Context 会导致全树重渲染。
+
+## 对比 Redux
+Redux 要 reducer/action/selector/connect，样板代码多。Zustand 一个 set 搞定，API 极简，TS 友好。
+
+## 本项目 auth store 设计
+- **state**：user、accessToken、refreshToken、isAuthenticated、isLoading、error
+- **actions**：setAuth（登录）、logout（登出）、setAccessToken（刷新）
+- **持久化**：手动 localStorage 存取 token，刷新页面不丢登录态
+- **工具函数**：getAccessToken/isTokenExpired 给 WS 和 axios 拦截器用，不订阅组件
+
+## 为什么不用 useReducer + Context
+auth 状态被 WS 客户端、axios 拦截器、多个页面读取。Context 需要在组件树内才能用，而 WS/axios 是模块级代码，无法用 hook。Zustand 的 getState/setState 模块级可调，完美匹配。`,
+    code: `import { create } from 'zustand'
+
+// 模块级单例 store，无需 Provider
+export const useAuthStore = create<AuthState & AuthActions>((set) => ({
+  user: loadUser(),
+  accessToken: loadTokens().accessToken,
+  isAuthenticated: !!loadTokens().accessToken,
+  setAuth: (user, accessToken, refreshToken) => {
+    saveTokens(accessToken, refreshToken)   // 持久化
+    set({ user, accessToken, refreshToken, isAuthenticated: true })
+  },
+  logout: () => {
+    clearAuth()
+    set({ user: null, accessToken: null, isAuthenticated: false })
+  },
+}))
+
+// 组件：selector 订阅切片，精准重渲染
+const user = useAuthStore((s) => s.user)         // 只订阅 user
+const logout = useAuthStore((s) => s.logout)      // 只订阅 action
+
+// 模块级代码（WS/axios）：直接 getState，不用 hook
+import { useAuthStore } from '@/store/auth'
+const token = useAuthStore.getState().accessToken // 非 React 环境可用`,
+    links: [
+      { title: 'Zustand 状态管理详解 - 掘金', url: 'https://juejin.cn/post/7119400155124066311', site: '掘金' },
+      { title: 'Zustand vs Context vs Redux - 知乎', url: 'https://zhuanlan.zhihu.com/p/149405307', site: '知乎' },
+    ],
+  },
 ]

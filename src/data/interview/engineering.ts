@@ -176,4 +176,76 @@ export default defineConfig({
       { title: 'Vite vs Webpack 原理对比 - 知乎', url: 'https://zhuanlan.zhihu.com/p/651601829', site: '知乎' },
     ],
   },
+  {
+    id: 'engineering-child-process-runner',
+    category: '工程化',
+    difficulty: 'expert',
+    title: '在线 Python 执行器如何实现？child_process.spawn 为什么写临时文件而不是 -c？',
+    summary:
+      'spawn 执行用户代码，写临时文件而非 spawn -c 避免引号转义且支持长代码；30s 超时 SIGKILL 防死循环；cwd 隔离到 tmpdir，执行完删除；MAX_LEN 截断防过载。',
+    answer: `## 在线代码执行的核心难点
+1. **执行隔离**：用户代码可能死循环/读写文件/调系统命令，不能影响宿主进程
+2. **超时控制**：死循环必须能强制终止
+3. **编码处理**：中文输出不能乱码
+4. **资源限制**：代码长度、输出长度都要限制
+
+## spawn vs exec vs fork
+| API | 特点 | 适用 |
+|---|---|---|
+| spawn | 流式输出，不缓冲，参数数组 | 长输出、大程序（本项目） |
+| exec | 缓冲全部输出，有 maxBuffer，shell 解析 | 简单命令，输出小 |
+| fork | spawn 子进程版，自带 IPC 通道 | Node 子进程通信 |
+
+本项目用 spawn：流式收集 stdout/stderr，避免 exec 的 maxBuffer 溢出，且参数数组避免 shell 注入。
+
+## 为什么写临时文件而非 spawn -c
+\`spawn('python', ['-c', code])\` 把代码作命令行参数：
+- ❌ 引号/转义地狱：代码含单引号、反斜杠、$ 符号会破坏命令行
+- ❌ 命令行长度限制（Windows 32K），长代码直接截断
+- ✅ 写 .py 临时文件再 spawn 文件路径：完全规避上述问题
+
+## 安全与资源控制
+1. **超时 SIGKILL**：30s 定时器，到点 \`proc.kill('SIGKILL')\` 强杀死循环
+2. **工作目录隔离**：\`cwd: os.tmpdir()\`，限制文件操作范围
+3. **临时文件清理**：close/error 回调都调 cleanup 删 .py 文件
+4. **输出截断**：MAX_LEN 50000 字符防超大输出撑爆内存
+5. **编码**：\`PYTHONIOENCODING=utf-8\` 保证中文输出正确
+
+## 更强的隔离：Docker 沙箱
+本项目用 tmpdir + 超时做基础隔离，生产环境在线执行器更应 Docker/容器化：限制 CPU/内存/网络/文件系统，彻底防逃逸。`,
+    code: `const { spawn } = require('child_process')
+const TIMEOUT_MS = 30000
+
+function runCode(code) {
+  return new Promise((resolve) => {
+    // 写临时文件，避免 -c 的引号转义和长度限制
+    const tmpFile = path.join(os.tmpdir(), \`pyrun_\${Date.now()}.py\`)
+    fs.writeFileSync(tmpFile, code, 'utf8')
+
+    const proc = spawn(PYTHON, [tmpFile], {
+      cwd: os.tmpdir(),                              // 工作目录隔离
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1' },
+    })
+
+    proc.stdout.on('data', (d) => stdoutChunks.push(d))
+    proc.stderr.on('data', (d) => stderrChunks.push(d))
+
+    // 超时强杀，防死循环
+    const timer = setTimeout(() => {
+      timedOut = true
+      proc.kill('SIGKILL')
+    }, TIMEOUT_MS)
+
+    proc.on('close', (exitCode) => {
+      clearTimeout(timer)
+      fs.unlinkSync(tmpFile)                         // 清理临时文件
+      resolve({ stdout, stderr, exitCode, timedOut })
+    })
+  })
+}`,
+    links: [
+      { title: 'Node.js child_process 详解 - 掘金', url: 'https://juejin.cn/post/6844904183347654688', site: '掘金' },
+      { title: '在线代码执行沙箱设计 - 知乎', url: 'https://zhuanlan.zhihu.com/p/651601829', site: '知乎' },
+    ],
+  },
 ]

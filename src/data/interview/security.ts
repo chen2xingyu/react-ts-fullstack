@@ -245,7 +245,134 @@ function csrfProtection(req, res, next) {
 // Set-Cookie: sessionId=xxx; SameSite=Lax; HttpOnly; Secure`,
     links: [
       { title: 'CSRF 攻击与防御 - 掘金', url: 'https://juejin.cn/post/7214305089924382777', site: '掘金' },
-      { title: 'OWASP CSRF 防御指南 - 官方', url: 'https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site-Request-Forgery_Prevention_Cheat_Sheet.html', site: '其他' },
+      { title: 'OWASP CSRF 防御指南 - 官方', url: 'https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html', site: '其他' },
+    ],
+  },
+  {
+    id: 'security-jwt-dual-token',
+    category: '安全',
+    difficulty: 'expert',
+    title: 'JWT 双 Token 机制如何设计？Access Token 短 + Refresh Token 长有什么好处？',
+    summary:
+      'Access Token（30m）日常请求用，Refresh Token（7d）仅用于刷新。短 token 降低泄露风险，长 token 不常传减少暴露面，配合黑名单可主动失效。',
+    answer: `## 为什么不用单个长 Token
+单 Token 方案的问题：
+- **有效期短**：用户频繁被踢下线重新登录，体验差
+- **有效期长**：Token 一旦泄露（XSS/日志/网络劫持），攻击者长期可用，且无法主动失效（JWT 无状态）
+
+## 双 Token 设计
+1. **Access Token（30m）**：每次 API 请求带在 Authorization 头，过期短
+   - 泄露风险窗口小，30 分钟后自动失效
+2. **Refresh Token（7d）**：只在过期刷新时传一次，不参与业务请求
+   - 暴露面小，难以被截获
+   - 存服务端可维护白名单，主动踢出时删除
+
+## 刷新流程
+1. Access Token 过期 → 业务接口返回 401
+2. 前端用 Refresh Token 调 /auth/refresh → 服务端验证 + 签发新 Access Token
+3. 前端用新 Access Token 重放原请求
+4. Refresh Token 也过期 → 跳登录页
+
+## 本项目实现
+- \`sign(payload, secret, { expiresIn: '30m' })\` 签发 Access Token
+- \`sign(payload, refreshSecret, { expiresIn: '7d' })\` 签发 Refresh Token
+- 两套密钥分离，即使 Access Secret 泄露，Refresh Token 仍安全
+- 前端 \`isTokenExpired\` 解码 payload 看 exp，提前主动刷新
+
+## 主动失效
+JWT 无状态本无法主动失效，但 Refresh Token 存服务端白名单，用户改密码/退出登录时删除，Access Token 自然过期（最多 30 分钟）。`,
+    code: `// 双 Token 签发（登录成功时）
+function login(userId, email) {
+  const payload = { sub: userId, email }
+  return {
+    accessToken: jwt.sign(payload, SECRET, { expiresIn: '30m', issuer: 'trading' }),
+    refreshToken: jwt.sign(payload, REFRESH_SECRET, { expiresIn: '7d', issuer: 'trading' }),
+  }
+}
+
+// 前端：检测过期 + 主动刷新
+function isTokenExpired(token) {
+  const payload = JSON.parse(atob(token.split('.')[1]))
+  return payload.exp * 1000 < Date.now()   // 解码看 exp
+}
+
+// 请求拦截器：401 时自动刷新重放
+axios.interceptors.response.use(null, async (err) => {
+  if (err.response?.status === 401 && !err.config._retry) {
+    err.config._retry = true
+    const { accessToken } = await refreshToken(refreshToken)
+    setAccessToken(accessToken)
+    err.config.headers.Authorization = 'Bearer ' + accessToken
+    return axios(err.config)              // 重放原请求
+  }
+  return Promise.reject(err)
+})`,
+    links: [
+      { title: 'JWT 双 Token 最佳实践 - 掘金', url: 'https://juejin.cn/post/7129400155124066311', site: '掘金' },
+      { title: 'Access Token 与 Refresh Token - 知乎', url: 'https://zhuanlan.zhihu.com/p/149405307', site: '知乎' },
+    ],
+  },
+  {
+    id: 'security-jwt-middleware',
+    category: '安全',
+    difficulty: 'hard',
+    title: 'JWT 认证中间件如何实现？过期、无效、缺失三种错误如何区分？',
+    summary:
+      '从 Authorization 头提取 Bearer Token，verify 解码后挂到 req.user。按 TokenExpiredError / JsonWebTokenError / 无 Token 分别返回明确 401 提示，前端据此决定刷新或跳登录。',
+    answer: `## 中间件职责
+1. **提取**：从 \`Authorization: Bearer <token>\` 头取 token
+2. **校验**：\`jwt.verify\` 验证签名 + 过期时间
+3. **注入**：解码后的用户信息挂到 \`req.user\`，后续业务直接用
+4. **拦截**：失败返回 401，不让进入业务路由
+
+## 三种错误区分
+| 错误 | 原因 | 前端处理 |
+|---|---|---|
+| 无 Token | 未登录 / Header 缺失 | 跳登录页 |
+| TokenExpiredError | Access Token 过期 | 用 Refresh Token 刷新 |
+| JsonWebTokenError | 签名错误 / 篡改 / 格式错 | 强制重新登录 |
+
+区分的意义：过期是正常情况（刷新即可），无效是安全问题（可能被篡改，必须重登）。
+
+## Bearer 前缀的作用
+\`Bearer\` 表示"持有者令牌"——谁持有 token 谁就是合法用户，无需额外证明。这是 RFC 6750 标准，区分 Basic/Digest 等其他认证方案。
+
+## 本项目实现要点
+- \`req.headers.authorization\` 取头，校验 \`Bearer \` 前缀
+- \`verifyAccessToken\` 失败时捕获 error.name 分别处理
+- 成功后 \`req.user = { id: decoded.sub, email, name }\`，控制器直接读
+
+## 安全细节
+- 密钥用环境变量，不进代码库
+- Token 不放 Cookie（防 CSRF），放 localStorage（需防 XSS）
+- HTTPS 传输防止中间人窃取`,
+    code: `// 认证中间件
+const auth = (req, res, next) => {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ code: 401, message: '未提供认证 Token' })
+  }
+  const token = authHeader.split(' ')[1]
+  try {
+    const decoded = verifyAccessToken(token)
+    req.user = { id: decoded.sub, email: decoded.email, name: decoded.name }
+    next()
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ code: 401, message: 'Token 已过期，请刷新' })
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ code: 401, message: 'Token 无效' })
+    }
+    return res.status(500).json({ code: 500, message: '认证服务异常' })
+  }
+}
+
+// 路由：受保护接口套中间件
+router.post('/orders', auth, tradingController.placeOrder)`,
+    links: [
+      { title: 'JWT 认证中间件实现 - 掘金', url: 'https://juejin.cn/post/7129400155124066311', site: '掘金' },
+      { title: 'Bearer Token 与 OAuth 2.0 - CSDN', url: 'https://blog.csdn.net/qq_37232329/article/details/120358235', site: 'CSDN' },
     ],
   },
 ]

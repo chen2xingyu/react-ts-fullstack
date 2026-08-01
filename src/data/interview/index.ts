@@ -1,4 +1,7 @@
 import { InterviewQuestion, categories, Category } from './types'
+import { tradingQuestions } from './trading'
+import { pythonQuestions } from './python'
+import { realtimeQuestions } from './realtime'
 import { reactQuestions } from './react'
 import { v8Questions } from './v8'
 import { networkQuestions } from './network'
@@ -13,6 +16,9 @@ export type { InterviewQuestion, Category }
 export { categories }
 
 export const allQuestions: InterviewQuestion[] = [
+  ...tradingQuestions,
+  ...pythonQuestions,
+  ...realtimeQuestions,
   ...reactQuestions,
   ...v8Questions,
   ...networkQuestions,

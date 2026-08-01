@@ -29,7 +29,7 @@ export default function Interview() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">高级前端面试题库 🔥</h1>
         <p className="text-gray-600">
-          涵盖 React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等 8 大方向，
+          涵盖交易系统、Python 异步、实时通信、React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等 11 大方向，
           共 <span className="font-bold text-primary-600">{allQuestions.length}</span> 道硬核题目
         </p>
       </div>

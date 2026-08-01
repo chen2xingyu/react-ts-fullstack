@@ -155,4 +155,65 @@ export default defineConfig({
       { title: 'React 代码分割指南 - React 官方', url: 'https://react.dev/reference/react/lazy', site: '其他' },
     ],
   },
+  {
+    id: 'perf-realtime-kline',
+    category: '性能优化',
+    difficulty: 'expert',
+    title: '实时 K 线图如何高效渲染？首根 setData、后续 update 的区别是什么？',
+    summary:
+      'lightweight-charts 用 Canvas 绘制，首根 kline 用 setData 建立时间轴避免蜡烛落不可见区间，后续同分钟 update 更新最后一根、跨分钟 update 追加。ResizeObserver 自适应。',
+    answer: `## 实时 K 线渲染的难点
+1. **高频更新**：每秒一个 tick，同分钟内不断更新最后一根蜡烛
+2. **时间轴建立**：空图直接 update，蜡烛可能落在未建立的时间区间看不见
+3. **跨分钟切换**：新分钟要追加新蜡烛，不能覆盖旧根
+4. **性能**：不能用 React state 驱动每帧重绘，否则卡顿
+
+## 为什么用 lightweight-charts 而非 ECharts/自绘
+- **lightweight-charts**：TradingView 出品，专为金融 K 线优化，Canvas 绘制，万级数据点流畅
+- ECharts：通用图表库，K 线场景下体积大、过度封装
+- 自绘 Canvas：灵活但工作量大（坐标轴/缩放/十字光标都要自己写）
+
+## setData vs update 的关键区别
+- **setData(数组)**：全量替换数据，重建时间轴，O(n)。首次必须用它建立时间轴
+- **update(单根)**：增量更新，若时间戳已存在则更新该根，不存在则追加，O(1)
+
+## 本项目的 bootstrap 策略
+历史 K 线接口可能返回空（Python 只发 Redis 不落 MySQL）：
+1. \`hasDataRef = false\` 时收到实时 kline → \`setData([candle])\` 建立时间轴 + fitContent
+2. \`hasDataRef = true\` 后 → \`update(candle)\` 增量更新最后一根/追加新根
+3. 切标的 → \`setData([])\` 清空 + 重置 hasDataRef，等新标的首根重建
+
+## 性能要点
+- 图表实例存 useRef，不进 React state，避免重渲染
+- ResizeObserver 监听容器宽度变化，applyOptions 自适应
+- time 不能回退，update 异常时 catch 忽略
+- 卸载时 chart.remove() 释放 Canvas 内存`,
+    code: `// 首根 bootstrap：建立时间轴
+useEffect(() => {
+  if (!kline || !seriesRef.current) return
+  const candle = toCandle(kline)
+  if (!hasDataRef.current) {
+    // 空图首根：setData 建立时间轴，否则蜡烛落在不可见区间
+    seriesRef.current.setData([candle])
+    hasDataRef.current = true
+    chartRef.current?.timeScale().fitContent()
+  } else {
+    // 后续：update 增量（同分钟更新末根，跨分钟追加）
+    seriesRef.current.update(candle)
+    chartRef.current?.timeScale().scrollToRealTime()
+  }
+}, [kline])
+
+// 自适应宽度：ResizeObserver
+const ro = new ResizeObserver(() => {
+  if (containerRef.current) {
+    chart.applyOptions({ width: containerRef.current.clientWidth })
+  }
+})
+ro.observe(containerRef.current)`,
+    links: [
+      { title: 'lightweight-charts 实时数据更新 - 掘金', url: 'https://juejin.cn/post/6844904199708950536', site: '掘金' },
+      { title: 'Canvas K 线图性能优化 - 知乎', url: 'https://zhuanlan.zhihu.com/p/40242267', site: '知乎' },
+    ],
+  },
 ]

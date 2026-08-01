@@ -20,7 +20,7 @@ class PositionModel {
   static async upsert(userId, symbol, qtyDelta, availableDelta, frozenDelta, costDelta) {
     await pool.query(
       `INSERT INTO positions (user_id, symbol, quantity, available_quantity, frozen_quantity, total_cost, avg_cost)
-       VALUES (?, ?, ?, ?, ?, ?, 0)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
         quantity = quantity + ?,
         available_quantity = available_quantity + ?,
@@ -28,6 +28,7 @@ class PositionModel {
         total_cost = total_cost + ?,
         avg_cost = CASE WHEN quantity > 0 THEN total_cost / quantity ELSE 0 END`,
       [userId, symbol, qtyDelta, availableDelta, frozenDelta, costDelta,
+        qtyDelta !== 0 ? costDelta / qtyDelta : 0,
        qtyDelta, availableDelta, frozenDelta, costDelta]
     )
     return this.findByUserAndSymbol(userId, symbol)

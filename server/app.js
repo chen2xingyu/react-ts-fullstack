@@ -8,6 +8,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler')
 const { setupWS } = require('./ws')
 const { refreshStockCache } = require('./services/stockCache')
 const { startMarketPublisher } = require('./services/marketPublisher')
+const { startTradeConsumer, startOrderStatusConsumer } = require('./services/tradeConsumer')
 
 const app = express()
 
@@ -52,6 +53,9 @@ const startServer = async () => {
         console.warn('⚠️ 股票缓存刷新失败（Redis 可能未启动）:', e.message)
       )
       startMarketPublisher()
+      // 成交回报 / 订单状态消费者（阶段 4 撮合结算）
+      startTradeConsumer()
+      startOrderStatusConsumer()
     })
   } catch (error) {
     console.error('❌ 启动失败:', error.message)

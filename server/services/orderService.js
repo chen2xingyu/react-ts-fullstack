@@ -173,8 +173,8 @@ async function placeOrder(userId, account, input) {
 
     const [ins] = await conn.query(
       `INSERT INTO orders
-         (user_id, account_id, symbol, side, order_type, price, quantity, filled_quantity, avg_fill_price, status, client_order_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
+         (user_id, account_id, symbol, side, order_type, price, quantity, filled_quantity, avg_fill_price, frozen_cash, status, client_order_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
       [
         userId,
         account.id,
@@ -183,6 +183,7 @@ async function placeOrder(userId, account, input) {
         order_type,
         orderPrice,
         qty,
+        side === ORDER_SIDE.BUY ? freezeAmount : 0,
         ORDER_STATUS.PENDING,
         client_order_id || null,
       ]

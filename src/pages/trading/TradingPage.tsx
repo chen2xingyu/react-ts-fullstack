@@ -5,6 +5,7 @@ import KLineChart from '@/components/trading/KLineChart'
 import DepthBook from '@/components/trading/DepthBook'
 import OrderForm from '@/components/trading/OrderForm'
 import OrderList from '@/components/trading/OrderList'
+import TradeList from '@/components/trading/TradeList'
 import { useMarketSocket, type Tick } from '@/hooks/useMarketSocket'
 import { getAccount, getStocks, getPositions, getKlines } from '@/api/trading'
 import type { Stock, Position, Kline } from '@/types/trading'
@@ -110,13 +111,8 @@ export default function TradingPage() {
       {/* 持仓列表（阶段 1 真实数据） */}
       <PositionList positions={positions} />
 
-      {/* 成交列表（阶段 4） */}
-      <Placeholder
-        title="成交列表"
-        stage="阶段 4"
-        className="h-[240px]"
-        hint="Python 撮合引擎成交回报"
-      />
+      {/* 成交列表（阶段 4：Python 撮合 → Node 结算落库） */}
+      <TradeList />
     </div>
   )
 }
@@ -175,29 +171,6 @@ function Field({
     <div className="flex items-center gap-1.5">
       <span className="text-gray-500">{label}</span>
       <span className={`font-medium ${color}`}>{value}</span>
-    </div>
-  )
-}
-
-/** 阶段占位区 */
-function Placeholder({
-  title,
-  stage,
-  hint,
-  className = '',
-}: {
-  title: string
-  stage: string
-  hint: string
-  className?: string
-}) {
-  return (
-    <div
-      className={`card flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-gray-50/50 ${className}`}
-    >
-      <div className="text-gray-400 text-base font-medium">{title}</div>
-      <div className="mt-1 px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-500">{stage}</div>
-      <div className="mt-2 text-xs text-gray-400">{hint}</div>
     </div>
   )
 }

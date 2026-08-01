@@ -45,6 +45,7 @@ const DDL = [
     quantity INT NOT NULL COMMENT '委托量(股)',
     filled_quantity INT NOT NULL DEFAULT 0,
     avg_fill_price DECIMAL(12,4) NOT NULL DEFAULT 0,
+    frozen_cash DECIMAL(18,4) NOT NULL DEFAULT 0 COMMENT '下单时冻结资金(买)，结算按比例释放',
     status TINYINT NOT NULL COMMENT '0待成交 1部分成交 2已成交 3已撤 4已拒',
     reject_reason VARCHAR(64) DEFAULT NULL,
     client_order_id VARCHAR(40) DEFAULT NULL COMMENT '前端幂等键',

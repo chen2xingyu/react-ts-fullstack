@@ -1,7 +1,7 @@
 import { View, Text, ScrollView } from '@tarojs/components'
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import { getCategories, interviewQuestions, categoryColors, categoryTagColors } from '../../data/interview'
+import { getCategories, techPoints, categoryColors, categoryTagColors } from '../../data/tech'
 import './index.scss'
 
 const categoryIcons: Record<string, string> = {
@@ -20,29 +20,29 @@ export default function Index() {
   const [activeCategory, setActiveCategory] = useState<string>('全部')
 
   const filteredCount = activeCategory === '全部'
-    ? interviewQuestions.length
-    : interviewQuestions.filter(q => q.category === activeCategory).length
+    ? techPoints.length
+    : techPoints.filter(p => p.category === activeCategory).length
 
   const handleCategoryClick = (category: string) => {
     setActiveCategory(category)
-    Taro.switchTab({ url: '/pages/interview/interview' })
+    Taro.switchTab({ url: '/pages/tech/tech' })
   }
 
   const handleStartPractice = () => {
-    Taro.switchTab({ url: '/pages/interview/interview' })
+    Taro.switchTab({ url: '/pages/tech/tech' })
   }
 
   return (
     <View className='container'>
       <View className='card hero'>
-        <View className='hero-title'>🔥 高级前端面试题库</View>
+        <View className='hero-title'>🔥 项目技术难点解析</View>
         <View className='hero-desc'>
-          涵盖 React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等 8 大方向
+          涵盖 React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等技术方向
         </View>
         <View className='hero-stats'>
           <View className='stat-item'>
-            <Text className='stat-num'>{interviewQuestions.length}</Text>
-            <Text className='stat-label'>道硬核题目</Text>
+            <Text className='stat-num'>{techPoints.length}</Text>
+            <Text className='stat-label'>个技术难点</Text>
           </View>
           <View className='stat-item'>
             <Text className='stat-num'>{categories.length}</Text>
@@ -50,11 +50,11 @@ export default function Index() {
           </View>
           <View className='stat-item'>
             <Text className='stat-num'>{filteredCount}</Text>
-            <Text className='stat-label'>题/分类</Text>
+            <Text className='stat-label'>个/分类</Text>
           </View>
         </View>
         <View className='btn-primary' onClick={handleStartPractice}>
-          开始刷题 🚀
+          查看技术难点 🚀
         </View>
       </View>
 
@@ -70,28 +70,28 @@ export default function Index() {
             <Text className='category-icon'>{categoryIcons[category]}</Text>
             <Text className='category-name'>{category}</Text>
             <Text className='category-count'>
-              {interviewQuestions.filter(q => q.category === category).length} 题
+              {techPoints.filter(p => p.category === category).length} 个
             </Text>
           </View>
         ))}
       </View>
 
-      <View className='section-title'>🔥 热门题目</View>
+      <View className='section-title'>🔥 热门技术点</View>
       <ScrollView scrollX className='hot-scroll'>
-        {interviewQuestions.slice(0, 5).map(q => (
+        {techPoints.slice(0, 5).map(p => (
           <View
-            key={q.id}
+            key={p.id}
             className='hot-item'
-            onClick={() => Taro.switchTab({ url: '/pages/interview/interview' })}
+            onClick={() => Taro.switchTab({ url: '/pages/tech/tech' })}
           >
-            <View className={`tag ${categoryTagColors[q.category]}`}>{q.category}</View>
-            <Text className='hot-title'>{q.title}</Text>
+            <View className={`tag ${categoryTagColors[p.category]}`}>{p.category}</View>
+            <Text className='hot-title'>{p.title}</Text>
           </View>
         ))}
       </ScrollView>
 
       <View className='footer'>
-        <Text className='footer-text'>💪 每天复习 3 题，拿下高级前端 offer</Text>
+        <Text className='footer-text'>💪 每天深入一个技术点，吃透项目原理</Text>
       </View>
     </View>
   )

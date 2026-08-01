@@ -3,7 +3,7 @@ import Layout from '@/components/Layout'
 import Home from '@/pages/Home'
 import About from '@/pages/About'
 import Users from '@/pages/Users'
-import Interview from '@/pages/Interview'
+import Tech from '@/pages/Tech'
 import Project from '@/pages/Project'
 import TradingPage from '@/pages/trading/TradingPage'
 import PythonRunner from '@/pages/PythonRunner'
@@ -38,10 +38,10 @@ export default function AppRouter() {
           }
         />
         <Route
-          path="interview"
+          path="tech"
           element={
             <ProtectedRoute>
-              <Interview />
+              <Tech />
             </ProtectedRoute>
           }
         />

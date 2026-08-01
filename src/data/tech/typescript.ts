@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const tsQuestions: InterviewQuestion[] = [
+export const tsPoints: TechPoint[] = [
   {
     id: 'ts-advanced-types',
     category: 'TypeScript',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'TypeScript 的条件类型、映射类型、模板字面量类型怎么用？',
     summary:
       '条件类型用 extends 做三元判断，映射类型遍历 key 生成新类型，模板字面量类型基于字符串拼接生成类型。三者组合可实现强大的类型推导。',
@@ -81,7 +81,7 @@ type Routes = {
   {
     id: 'ts-pick-omit',
     category: 'TypeScript',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'TypeScript 中 Partial、Required、Pick、Omit、Record 等工具类型的实现原理？',
     summary:
       '这些工具类型都是基于映射类型和条件类型实现的。通过 keyof、in、extends 等关键字组合实现类型转换。',

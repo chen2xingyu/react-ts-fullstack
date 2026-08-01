@@ -1,11 +1,11 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
 // 交易系统方向：本项目证券交易系统的核心技术难点
-export const tradingQuestions: InterviewQuestion[] = [
+export const tradingPoints: TechPoint[] = [
   {
     id: 'trading-matching-engine',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '证券撮合引擎如何设计？价格优先 + 时间优先如何实现？',
     summary:
       '撮合引擎是交易系统核心。用 SortedDict/biset 维护买卖盘，买盘价格降序、卖盘价格升序，同价位按挂单时间 FIFO，maker 价成交。',
@@ -54,7 +54,7 @@ class OrderBook:
   {
     id: 'trading-stream-vs-pubsub',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Redis Stream 和 Pub/Sub 如何选型？交易系统为什么混用？',
     summary:
       '交易流（订单/成交）用 Stream：消费者组 + ACK + pending 续消费，崩溃不丢；行情广播用 Pub/Sub：最新即正确，丢一两个无妨，低延迟。',
@@ -95,7 +95,7 @@ await redis.publish(
   {
     id: 'trading-disaster-recovery',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '撮合引擎崩溃后挂单会丢吗？如何实现容灾重建？',
     summary:
       '限价单写 Redis 活跃快照（SET + HASH），撮合进程崩溃重启后从快照 rebuild_from_active 重建订单簿，seen_ids 去重 Stream 重投递，挂单不丢。',
@@ -132,7 +132,7 @@ async def main():
   {
     id: 'trading-oversell-prevent',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '高并发下单如何防止资金超卖？带条件 UPDATE 为什么比先查后改好？',
     summary:
       '事务内带条件 UPDATE（WHERE cash_available >= ?）让 DB 原子校验，affectedRows=0 即回滚。比「先 SELECT 再 UPDATE」无竞态窗口。',
@@ -187,7 +187,7 @@ try {
   {
     id: 'trading-risk-control',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '交易系统的前置风控如何设计？如何保证拒绝记录可审计？',
     summary:
       '12 类风控规则（涨跌停/手数/资金/持仓/幂等等），rejectRisk 统一出口函数「先记日志再抛错」，所有拒绝写入 risk_logs 可查可聚合。',
@@ -233,7 +233,7 @@ if (price > upperLimit || price < lowerLimit) {
   {
     id: 'trading-order-book',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '订单簿用什么数据结构？如何保证撮合 O(log n)？',
     summary:
       '买卖盘各用「价格 → 订单队列」的字典 + bisect 维护的有序价格数组。价位内 FIFO 队列保证时间优先，有序数组二分定位保证价格优先 O(log n)。',
@@ -276,7 +276,7 @@ class OrderBook:
   {
     id: 'trading-market-generation',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '模拟行情如何生成？几何布朗运动 + 均值回归是什么？',
     summary:
       '用几何布朗运动（GBM）模拟价格随机游走，叠加均值回归让价格围绕基准震荡，涨跌停钳制防止越界。tick 聚合成 1m K 线。',
@@ -320,7 +320,7 @@ def gen_tick(prev_price, base_price, sigma=0.002):
   {
     id: 'trading-cancel-flow',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '撤单链路如何设计？如何保证冻结资金正确释放？',
     summary:
       '前端撤单→后端校验状态→Stream 投递撤单指令→撮合引擎 order_book.cancel→释放冻结资金→WS 推送状态。全链路异步可靠。',
@@ -362,7 +362,7 @@ async function cancelOrder(userId, orderId) {
   {
     id: 'trading-consumer-group',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Redis Stream 消费者组如何保证消息不丢？XACK 和 pending 的作用？',
     summary:
       '消费者组让多个消费者分担消费，XREADGROUP 读取后消息进 pending 列表，XACK 确认后才删除。消费者崩溃未 ACK 的消息留在 pending，重启可续消费。',
@@ -404,7 +404,7 @@ while True:
   {
     id: 'trading-pending-reclaim',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '消费者崩溃后 pending 消息如何回收？Redis 5 没有 XAUTOCLAIM 怎么办？',
     summary:
       'Redis 6 有 XAUTOCLAIM 一键回收，本项目用 Redis 5，用 XPENDING 扫描 + XCLAIM 抢回两步替代，实现崩溃消费者未 ACK 消息的回收。',
@@ -449,7 +449,7 @@ async def drain_pending(redis, stream, group, consumer):
   {
     id: 'trading-responsibility-split',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '为什么 Python 撮合引擎不直接写 MySQL？职责如何分离？',
     summary:
       'Python 只管算（撮合/行情），Node 只管存（事务落库）。Python 无 DB 凭据更安全，可随时重启，资金安全不依赖撮合进程存活。',
@@ -495,7 +495,7 @@ async function settleTrade(msg) {
   {
     id: 'trading-fund-conservation',
     category: '交易系统',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '交易系统如何保证资金守恒？一笔买卖的对账如何验证？',
     summary:
       '资金守恒：可用 + 冻结 + 持仓成本 = 常数。冻结→成交→持仓/资金转移全在事务内，每步可对账：accounts + positions + orders + trades 四表一致。',
@@ -537,7 +537,7 @@ assert(Math.abs(total - INIT_CASH) < 0.01, '资金不守恒')`,
   {
     id: 'trading-depth-click',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '五档盘口联动点价填单如何实现？前端状态如何传递？',
     summary:
       '五档盘口点击价格触发 onPickPrice 回调，父组件用 nonce 生成 pickedPrice 传给 OrderForm，useEffect 监听变化自动填价并切限价模式。nonce 解决相同价格不触发问题。',
@@ -585,7 +585,7 @@ useEffect(() => {
   {
     id: 'trading-ws-notify-refresh',
     category: '交易系统',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'WebSocket 收到成交通知后，前端如何实现毫秒级数据刷新？',
     summary:
       'WS 收到订单状态/成交通知 → 调用 React Query 的 invalidateQueries 失效相关缓存 → TanStack Query 自动重新拉取，告别死轮询，毫秒级联动。',

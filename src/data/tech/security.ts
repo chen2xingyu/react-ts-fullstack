@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const securityQuestions: InterviewQuestion[] = [
+export const securityPoints: TechPoint[] = [
   {
     id: 'xss',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'XSS 攻击的原理是什么？如何从前端角度防御 XSS？',
     summary:
       'XSS（跨站脚本）攻击是在页面中注入恶意脚本执行。存储型危害最大。防御方法：输入校验、输出转义、CSP、HttpOnly Cookie、DOMPurify。',
@@ -83,7 +83,7 @@ const cleanHtml = DOMPurify.sanitize(html)
   {
     id: 'cors',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CORS 跨域的完整流程是怎样的？简单请求和预检请求有什么区别？',
     summary:
       'CORS 通过 HTTP 头部实现跨域资源共享。简单请求直接发送，预检请求先 OPTIONS 协商。关键头部：Access-Control-Allow-Origin、Access-Control-Allow-Credentials。',
@@ -173,7 +173,7 @@ export default defineConfig({
   {
     id: 'csrf',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSRF 攻击原理是什么？SameSite Cookie 和 Token 验证如何防御？',
     summary:
       'CSRF 诱导已登录用户在不知情的情况下发送请求。防御方法：SameSite Cookie、CSRF Token、Referer/Origin 校验、Double Submit Cookie。',
@@ -251,7 +251,7 @@ function csrfProtection(req, res, next) {
   {
     id: 'security-jwt-dual-token',
     category: '安全',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'JWT 双 Token 机制如何设计？Access Token 短 + Refresh Token 长有什么好处？',
     summary:
       'Access Token（30m）日常请求用，Refresh Token（7d）仅用于刷新。短 token 降低泄露风险，长 token 不常传减少暴露面，配合黑名单可主动失效。',
@@ -315,7 +315,7 @@ axios.interceptors.response.use(null, async (err) => {
   {
     id: 'security-jwt-middleware',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'JWT 认证中间件如何实现？过期、无效、缺失三种错误如何区分？',
     summary:
       '从 Authorization 头提取 Bearer Token，verify 解码后挂到 req.user。按 TokenExpiredError / JsonWebTokenError / 无 Token 分别返回明确 401 提示，前端据此决定刷新或跳登录。',

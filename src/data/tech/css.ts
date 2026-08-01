@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const cssQuestions: InterviewQuestion[] = [
+export const cssPoints: TechPoint[] = [
   {
     id: 'css-bfc',
     category: 'CSS 深入',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSS 的 BFC（块格式化上下文）是什么？它如何解决 margin 折叠和浮动问题？',
     summary:
       'BFC 是一个独立的渲染区域，内部元素不会影响外部。可以通过 overflow:hidden、display:flow-root、position:absolute 等方式创建 BFC。',
@@ -66,7 +66,7 @@ BFC（Block Formatting Context）是 CSS 2.1 规范中的一个概念，指一�
   {
     id: 'css-flex',
     category: 'CSS 深入',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Flexbox 的布局原理是什么？justify-content 和 align-items 的区别？',
     summary:
       'Flexbox 是一维布局模型，通过 flex container 和 flex item 实现。justify-content 控制主轴方向，align-items 控制交叉轴方向。',
@@ -148,13 +148,13 @@ BFC（Block Formatting Context）是 CSS 2.1 规范中的一个概念，指一�
 .aside { flex: 0 0 150px; }`,
     links: [
       { title: 'Flexbox 完全指南 - 掘金', url: 'https://juejin.cn/post/2756462919647989773', site: '掘金' },
-      { title: 'Flex 布局经典面试题 - 知乎', url: 'https://zhuanlan.zhihu.com/p/24658053', site: '知乎' },
+      { title: 'Flex 布局深入理解 - 知乎', url: 'https://zhuanlan.zhihu.com/p/24658053', site: '知乎' },
     ],
   },
   {
     id: 'css-modules',
     category: 'CSS 深入',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSS-in-JS、CSS Modules、Styled Components 的原理和区别？',
     summary:
       '三者都是解决样式隔离问题。CSS-in-JS 在运行时生成样式，CSS Modules 编译时生成唯一类名，Styled Components 基于 CSS-in-JS 增加组件化能力。',

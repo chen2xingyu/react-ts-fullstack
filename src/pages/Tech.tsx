@@ -1,20 +1,20 @@
 import { useState, useMemo } from 'react'
-import { categories, allQuestions, getQuestionsByCategory, type Category, type InterviewQuestion } from '@/data/interview'
+import { categories, allPoints, getPointsByCategory, type Category, type TechPoint } from '@/data/tech'
 
-export default function Interview() {
+export default function Tech() {
   const [activeCategory, setActiveCategory] = useState<'全部' | Category>('全部')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const filteredQuestions = useMemo(() => {
-    let list = activeCategory === '全部' ? allQuestions : getQuestionsByCategory(activeCategory)
+  const filteredPoints = useMemo(() => {
+    let list = activeCategory === '全部' ? allPoints : getPointsByCategory(activeCategory)
     if (searchKeyword.trim()) {
       const kw = searchKeyword.toLowerCase()
       list = list.filter(
-        (q) =>
-          q.title.toLowerCase().includes(kw) ||
-          q.summary.toLowerCase().includes(kw) ||
-          q.category.toLowerCase().includes(kw),
+        (p) =>
+          p.title.toLowerCase().includes(kw) ||
+          p.summary.toLowerCase().includes(kw) ||
+          p.category.toLowerCase().includes(kw),
       )
     }
     return list
@@ -27,15 +27,15 @@ export default function Interview() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">高级前端面试题库 🔥</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">项目技术难点解析 🔥</h1>
         <p className="text-gray-600">
-          涵盖交易系统、Python 异步、实时通信、React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等 11 大方向，
-          共 <span className="font-bold text-primary-600">{allQuestions.length}</span> 道硬核题目
+          涵盖交易系统、Python 异步、实时通信、React 原理、V8、网络协议、工程化、TypeScript、CSS、性能优化、安全等{' '}
+          {categories.length} 大方向，共 <span className="font-bold text-primary-600">{allPoints.length}</span> 个核心技术难点
         </p>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2 items-center">
-        <span className="text-sm text-gray-500">筛选：</span>
+        <span className="text-sm text-gray-500">分类：</span>
         {['全部', ...categories].map((cat) => (
           <button
             key={cat}
@@ -54,7 +54,7 @@ export default function Interview() {
       <div className="mb-6">
         <input
           type="text"
-          placeholder="🔍 搜索题目关键词..."
+          placeholder="🔍 搜索技术点关键词..."
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -62,16 +62,16 @@ export default function Interview() {
       </div>
 
       <div className="space-y-4">
-        {filteredQuestions.length === 0 && (
-          <div className="card text-center text-gray-400 py-12">暂无匹配的题目</div>
+        {filteredPoints.length === 0 && (
+          <div className="card text-center text-gray-400 py-12">暂无匹配的技术点</div>
         )}
-        {filteredQuestions.map((q, index) => (
-          <QuestionCard
-            key={q.id}
-            question={q}
+        {filteredPoints.map((p, index) => (
+          <TechPointCard
+            key={p.id}
+            point={p}
             index={index + 1}
-            expanded={expandedId === q.id}
-            onToggle={() => toggleExpand(q.id)}
+            expanded={expandedId === p.id}
+            onToggle={() => toggleExpand(p.id)}
           />
         ))}
       </div>
@@ -79,13 +79,13 @@ export default function Interview() {
   )
 }
 
-function QuestionCard({
-  question,
+function TechPointCard({
+  point,
   index,
   expanded,
   onToggle,
 }: {
-  question: InterviewQuestion
+  point: TechPoint
   index: number
   expanded: boolean
   onToggle: () => void
@@ -100,16 +100,16 @@ function QuestionCard({
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs text-gray-400 font-mono">#{String(index).padStart(2, '0')}</span>
             <span className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs rounded">
-              {question.category}
+              {point.category}
             </span>
-            {question.difficulty === 'expert' ? (
-              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">专家级</span>
+            {point.depth === 'principle' ? (
+              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">原理深度</span>
             ) : (
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">困难</span>
+              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">实现要点</span>
             )}
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">{question.title}</h3>
-          <p className="text-sm text-gray-500 mt-1">{question.summary}</p>
+          <h3 className="text-lg font-semibold text-gray-900">{point.title}</h3>
+          <p className="text-sm text-gray-500 mt-1">{point.summary}</p>
         </div>
         <button
           className={`ml-4 flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-transform ${
@@ -124,16 +124,16 @@ function QuestionCard({
 
       {expanded && (
         <div className="mt-6 space-y-4">
-          <AnswerContent content={question.answer} />
+          <AnswerContent content={point.answer} />
 
-          {question.code && (
-            <CodeBlock code={question.code} />
+          {point.code && (
+            <CodeBlock code={point.code} />
           )}
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">🔗 拓展阅读</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">🔗 延伸阅读</h4>
             <div className="flex flex-wrap gap-2">
-              {question.links.map((link, i) => (
+              {point.links.map((link, i) => (
                 <a
                   key={i}
                   href={link.url}

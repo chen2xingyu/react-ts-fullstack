@@ -1,11 +1,11 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
 // Python 异步方向：asyncio 事件循环、协程、redis.asyncio 等
-export const pythonQuestions: InterviewQuestion[] = [
+export const pythonPoints: TechPoint[] = [
   {
     id: 'python-asyncio-event-loop',
     category: 'Python 异步',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Python asyncio 事件循环原理是什么？单线程如何处理并发？',
     summary:
       '事件循环是一个无限循环，不断监听就绪的 IO 事件并调度对应协程执行。单线程靠 IO 多路复用（epoll/select）实现并发：IO 等待时让出执行权给其他协程。',
@@ -51,7 +51,7 @@ asyncio.run(main())  # 启动事件循环`,
   {
     id: 'python-coroutine-vs-thread',
     category: 'Python 异步',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '协程、线程、进程有什么区别？为什么撮合引擎用协程？',
     summary:
       '进程是资源单位、线程是调度单位、协程是用户态轻量线程。协程切换在用户态无内核开销，单线程无锁无竞态，适合 IO 密集的撮合引擎。',
@@ -100,7 +100,7 @@ def match(msg):
   {
     id: 'python-async-await',
     category: 'Python 异步',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'async/await 的执行原理？await 时发生了什么？',
     summary:
       'async def 定义协程函数，调用返回 coroutine 对象。await 挂起当前协程、把控制权交还事件循环，等 awaitable 完成后恢复执行。本质是状态机。',
@@ -146,7 +146,7 @@ asyncio.run(main())`,
   {
     id: 'python-asyncio-gather',
     category: 'Python 异步',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'asyncio.gather 如何并行调度多任务？异常如何处理？',
     summary:
       'gather 把多个协程包装成 Task 并发调度，等待全部完成返回结果列表。默认任一异常会向上抛，return_exceptions=True 则异常作为结果返回不中断其他任务。',
@@ -196,7 +196,7 @@ for r in results:
   {
     id: 'python-redis-asyncio',
     category: 'Python 异步',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'redis.asyncio 异步客户端如何不阻塞事件循环？',
     summary:
       'redis.asyncio 用 asyncio 的 socket + 协议解析，所有命令是协程，等待 Redis 响应时挂起让出执行权。配合 Stream 的 XREADGROUP block 实现长轮询不浪费 CPU。',
@@ -245,7 +245,7 @@ async def consume_orders(redis, engine):
   {
     id: 'python-single-thread-concurrency',
     category: 'Python 异步',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Python 单线程协程如何支撑高并发？会撞 CPU 瓶颈吗？',
     summary:
       '单线程协程靠 IO 多路复用支撑高并发连接，适合 IO 密集场景。CPU 密集任务会阻塞事件循环，应用多进程或 executor 卸载，避免拖慢所有协程。',

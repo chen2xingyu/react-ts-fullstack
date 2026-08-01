@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const performanceQuestions: InterviewQuestion[] = [
+export const performancePoints: TechPoint[] = [
   {
     id: 'web-vitals',
     category: '性能优化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Web Vitals 指标有哪些？LCP、FID、CLS 分别衡量什么？如何优化？',
     summary:
       'Core Web Vitals 是 Google 衡量用户体验的核心指标：LCP 衡量加载性能，FID 衡量交互响应，CLS 衡量视觉稳定性。优化需要从加载、交互、布局三方面入手。',
@@ -70,7 +70,7 @@ worker.onmessage = (e) => console.log(e.data)`,
   {
     id: 'code-splitting',
     category: '性能优化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '代码分割（Code Splitting）有哪些方式？React.lazy、动态 import、路由级分割怎么用？',
     summary:
       '代码分割将代码按模块拆分，按需加载。方式包括：路由级分割、组件级分割、第三方库分离、动态 import。React.lazy + Suspense 实现优雅的加载体验。',
@@ -158,7 +158,7 @@ export default defineConfig({
   {
     id: 'perf-realtime-kline',
     category: '性能优化',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '实时 K 线图如何高效渲染？首根 setData、后续 update 的区别是什么？',
     summary:
       'lightweight-charts 用 Canvas 绘制，首根 kline 用 setData 建立时间轴避免蜡烛落不可见区间，后续同分钟 update 更新最后一根、跨分钟 update 追加。ResizeObserver 自适应。',

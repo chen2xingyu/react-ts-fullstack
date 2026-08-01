@@ -3,34 +3,34 @@ import { useState, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import {
   getCategories,
-  interviewQuestions,
+  techPoints,
   categoryTagColors,
-  difficultyLabels,
-  type InterviewQuestion,
-} from '../../data/interview'
-import './interview.scss'
+  depthLabels,
+  type TechPoint,
+} from '../../data/tech'
+import './tech.scss'
 
-export default function Interview() {
+export default function Tech() {
   const [activeCategory, setActiveCategory] = useState('全部')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const categories = ['全部', ...getCategories()]
 
-  const filteredQuestions = useMemo(() => {
-    let questions = interviewQuestions
+  const filteredPoints = useMemo(() => {
+    let points = techPoints
     if (activeCategory !== '全部') {
-      questions = questions.filter(q => q.category === activeCategory)
+      points = points.filter(p => p.category === activeCategory)
     }
     if (searchKeyword.trim()) {
       const keyword = searchKeyword.toLowerCase()
-      questions = questions.filter(
-        q =>
-          q.title.toLowerCase().includes(keyword) ||
-          q.summary.toLowerCase().includes(keyword),
+      points = points.filter(
+        p =>
+          p.title.toLowerCase().includes(keyword) ||
+          p.summary.toLowerCase().includes(keyword),
       )
     }
-    return questions
+    return points
   }, [activeCategory, searchKeyword])
 
   const toggleExpand = (id: string) => {
@@ -52,7 +52,7 @@ export default function Interview() {
         <Text className='search-icon'>🔍</Text>
         <Input
           className='search-input'
-          placeholder='搜索题目关键词...'
+          placeholder='搜索技术点关键词...'
           value={searchKeyword}
           onInput={e => setSearchKeyword(e.detail.value)}
         />
@@ -71,16 +71,16 @@ export default function Interview() {
       </ScrollView>
 
       <View className='question-count'>
-        <Text className='count-text'>共 {filteredQuestions.length} 题</Text>
+        <Text className='count-text'>共 {filteredPoints.length} 个技术点</Text>
       </View>
 
       <View className='question-list'>
-        {filteredQuestions.map(q => (
-          <QuestionCard
-            key={q.id}
-            question={q}
-            expanded={expandedId === q.id}
-            onToggle={() => toggleExpand(q.id)}
+        {filteredPoints.map(p => (
+          <TechPointCard
+            key={p.id}
+            point={p}
+            expanded={expandedId === p.id}
+            onToggle={() => toggleExpand(p.id)}
             onCopyCode={copyCode}
           />
         ))}
@@ -89,16 +89,16 @@ export default function Interview() {
   )
 }
 
-interface QuestionCardProps {
-  question: InterviewQuestion
+interface TechPointCardProps {
+  point: TechPoint
   expanded: boolean
   onToggle: () => void
   onCopyCode: (code: string) => void
 }
 
-function QuestionCard({ question, expanded, onToggle, onCopyCode }: QuestionCardProps) {
-  const tagClass = categoryTagColors[question.category] || ''
-  const diffClass = `difficulty-${question.difficulty}`
+function TechPointCard({ point, expanded, onToggle, onCopyCode }: TechPointCardProps) {
+  const tagClass = categoryTagColors[point.category] || ''
+  const depthClass = `depth-${point.depth}`
 
   const formatAnswer = (answer: string) => {
     return answer
@@ -123,11 +123,11 @@ function QuestionCard({ question, expanded, onToggle, onCopyCode }: QuestionCard
     <View className='question-card'>
       <View className='question-header' onClick={onToggle}>
         <View className='question-meta'>
-          <View className={`tag ${tagClass}`}>{question.category}</View>
-          <Text className={diffClass}>{difficultyLabels[question.difficulty]}</Text>
+          <View className={`tag ${tagClass}`}>{point.category}</View>
+          <Text className={depthClass}>{depthLabels[point.depth]}</Text>
         </View>
-        <View className='question-title'>{question.title}</View>
-        <View className='question-summary'>{question.summary}</View>
+        <View className='question-title'>{point.title}</View>
+        <View className='question-summary'>{point.summary}</View>
         <View className='expand-icon'>
           <Text>{expanded ? '▲ 收起' : '▼ 展开'}</Text>
         </View>
@@ -136,28 +136,28 @@ function QuestionCard({ question, expanded, onToggle, onCopyCode }: QuestionCard
       {expanded && (
         <View className='question-body'>
           <View className='answer-section'>
-            <View className='answer-label'>📖 详细答案</View>
-            <View className='answer-content'>{formatAnswer(question.answer)}</View>
+            <View className='answer-label'>📖 深度解析</View>
+            <View className='answer-content'>{formatAnswer(point.answer)}</View>
           </View>
 
-          {question.code && (
+          {point.code && (
             <View className='code-section'>
               <View className='code-header'>
                 <Text className='code-label'>💻 代码示例</Text>
-                <View className='code-copy-btn' onClick={() => onCopyCode(question.code!)}>
+                <View className='code-copy-btn' onClick={() => onCopyCode(point.code!)}>
                   📋 复制
                 </View>
               </View>
               <View className='code-block'>
-                <Text className='code-text'>{question.code}</Text>
+                <Text className='code-text'>{point.code}</Text>
               </View>
             </View>
           )}
 
-          {question.links.length > 0 && (
+          {point.links.length > 0 && (
             <View className='links-section'>
-              <View className='links-label'>🔗 拓展阅读</View>
-              {question.links.map((link, i) => (
+              <View className='links-label'>🔗 延伸阅读</View>
+              {point.links.map((link, i) => (
                 <View
                   key={i}
                   className='link-item'

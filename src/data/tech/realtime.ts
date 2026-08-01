@@ -1,11 +1,11 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
 // 实时通信方向：WebSocket 服务端/客户端、心跳、重连、鉴权
-export const realtimeQuestions: InterviewQuestion[] = [
+export const realtimePoints: TechPoint[] = [
   {
     id: 'realtime-ws-heartbeat',
     category: '实时通信',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'WebSocket 服务端如何检测半开连接？ping/pong 心跳为什么用协议帧？',
     summary:
       'TCP 不会主动告知对端断网，服务端用 isAlive 标志 + 定时 ping 探活：每轮先置 false 再发协议级 ping，下轮仍 false 说明对端已死，terminate 清理。',
@@ -53,7 +53,7 @@ setInterval(() => {
   {
     id: 'realtime-ws-reconnect',
     category: '实时通信',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'WebSocket 断线如何自动重连？指数退避 + 自动重订阅怎么实现？',
     summary:
       'onclose 触发重连，延迟数组 [1,2,3,5]s 指数退避封顶；closedByUser 标志区分主动卸载与异常断开；重连成功后用 symbolRef 自动重订阅，避免漏行情。',
@@ -115,7 +115,7 @@ useEffect(() => {
   {
     id: 'realtime-ws-auth',
     category: '实时通信',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '浏览器 WebSocket 无法设置 Header，JWT 鉴权怎么做？',
     summary:
       '浏览器原生 WebSocket API 不支持自定义 Header，三种方案：query string 带 token（本项目）、Sec-WebSocket-Protocol 子协议、首次消息握手。各有取舍。',
@@ -171,7 +171,7 @@ wss.on('connection', (ws, req) => {
   {
     id: 'realtime-ws-vs-sse',
     category: '实时通信',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'WebSocket、SSE、轮询如何选型？交易系统为什么用 WebSocket？',
     summary:
       '轮询最简单但延迟高浪费请求；SSE 单向服务端推送适合行情；WebSocket 全双工适合需要客户端双向交互（订阅/撤单通知）的场景。本项目混用 WS。',

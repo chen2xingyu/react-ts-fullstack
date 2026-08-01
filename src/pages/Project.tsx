@@ -12,7 +12,7 @@ interface TechItem {
   color: string
 }
 
-interface InterviewPoint {
+interface TechPointRef {
   category: string
   question: string
   answer: string
@@ -272,79 +272,79 @@ const engineeringHighlights = [
   },
 ]
 
-// ---------- 面试知识点 ----------
-const interviewPoints: InterviewPoint[] = [
+// ---------- 技术难点 ----------
+const techPoints: TechPointRef[] = [
   {
     category: '消息中间件',
     question: 'Redis Stream vs Pub/Sub 如何选型？',
     answer: '交易流（订单/成交）用 Stream：消费者组 + ACK + pending 续消费，崩溃不丢；行情广播用 Pub/Sub：最新即正确，丢一两个无妨，低延迟',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '容灾设计',
     question: '撮合引擎崩溃后挂单会丢吗？',
     answer: '限价单写 Redis 活跃快照（SET+HASH），重启时 rebuild_from_active 重建订单簿；seen_ids 去重 Stream 重投递，挂单继续有效',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '并发控制',
     question: '如何防止并发下单超卖？',
     answer: '事务内带条件 UPDATE：WHERE cash_available >= ? 让 DB 原子校验，affectedRows=0 即回滚。比「先 SELECT 再 UPDATE」无竞态窗口',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '架构设计',
     question: '为何 Python 不直写 MySQL？',
     answer: '职责分离：Python 只管算（撮合/行情），Node 只管存（事务落库）。Python 无 DB 凭据更安全，且可随时重启，资金安全不依赖撮合进程',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '实时通信',
     question: 'WebSocket 房间订阅如何设计？',
     answer: 'JWT 鉴权连接 + symbol 房间按行情定向广播 + 用户私有通道推成交 + 心跳保活 + 断线重连自动恢复订阅',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '消息可靠',
     question: '消费者崩溃后 pending 消息怎么办？',
     answer: '启动时 XPENDING 扫描 pending 队列，对超阈值消息 XCLAIM 抢回重处理。Redis 6 有 XAUTOCLAIM，本项目 5.0 用两步替代',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: 'React 原理',
     question: 'React Fiber 架构与并发渲染',
     answer: 'React 18 Concurrent Mode，Fiber 链表结构实现可中断渲染，时间切片利用 MessageChannel 让出主线程',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '状态管理',
     question: 'Zustand vs Redux 的设计哲学',
     answer: 'Zustand 基于 useSyncExternalStore，无 Provider 嵌套，store 即 hook；Redux 强调单一数据流和中间件',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '网络协议',
     question: 'CORS 跨域与 Vite Proxy 原理',
     answer: '开发环境 Vite dev server 代理 /api 到 :3000 绕过同源策略；生产环境 Express 配置 CORS 中间件',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '工程化',
     question: 'Vite 为什么比 Webpack 快',
     answer: 'Vite 利用浏览器原生 ESM 按需编译，esbuild 预构建依赖，冷启动无需打包；Webpack 需全量打包',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '数据库',
     question: 'MySQL 事务与隔离级别',
     answer: '资金冻结 + 落单在同一事务保证 ACID；带条件 UPDATE 利用行锁防并发，REPEATABLE READ 避免幻读',
-    link: '/interview',
+    link: '/tech',
   },
   {
     category: '安全',
     question: 'SQL 注入防御与 JWT 鉴权',
     answer: 'mysql2 预处理语句参数化查询防注入；JWT 双令牌（Access+Refresh），WS 与 REST 统一鉴权',
-    link: '/interview',
+    link: '/tech',
   },
 ]
 
@@ -725,15 +725,15 @@ const proc = spawn(PYTHON, [tmpFile], {
         </div>
       </section>
 
-      {/* ===== 面试知识点关联 ===== */}
+      {/* ===== 技术难点关联 ===== */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <span className="text-2xl">🎯</span>
-          <h2 className="text-2xl font-bold text-gray-900">涉及面试知识点</h2>
+          <h2 className="text-2xl font-bold text-gray-900">涉及技术难点</h2>
           <span className="text-sm text-gray-400">项目背后的原理与深度</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {interviewPoints.map((point, idx) => (
+          {techPoints.map((point, idx) => (
             <Link
               key={idx}
               to={point.link}
@@ -832,8 +832,8 @@ const proc = spawn(PYTHON, [tmpFile], {
           <Link to="/trading" className="btn-primary">
             📊 进入交易系统
           </Link>
-          <Link to="/interview" className="btn-secondary">
-            📚 查看面试题库
+          <Link to="/tech" className="btn-secondary">
+            📚 查看技术难点解析
           </Link>
           <Link to="/" className="btn-secondary">
             🏠 返回首页

@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const networkQuestions: InterviewQuestion[] = [
+export const networkPoints: TechPoint[] = [
   {
     id: 'tcp-handshake',
     category: '网络与协议',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'TCP 三次握手为什么不是两次或四次？TIME_WAIT 状态的作用是什么？',
     summary:
       '三次握手是为了确认双方收发能力正常，防止已失效的连接请求报文段突然又传送到了服务端。TIME_WAIT 确保最后一个 ACK 能到达对方。',
@@ -55,7 +55,7 @@ export const networkQuestions: InterviewQuestion[] = [
   {
     id: 'http2',
     category: '网络与协议',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'HTTP/2 的核心特性有哪些？多路复用、头部压缩、服务器推送是怎么实现的？',
     summary:
       'HTTP/2 基于二进制分帧层，支持多路复用、HPACK 头部压缩、服务器推送、流优先级。多路复用解决了 HTTP/1.1 的队头阻塞问题。',
@@ -107,7 +107,7 @@ export const networkQuestions: InterviewQuestion[] = [
   {
     id: 'web-cache',
     category: '网络与协议',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '浏览器缓存机制有哪些？强缓存和协商缓存的区别是什么？',
     summary:
       '浏览器缓存分为强缓存（Cache-Control/Expires）和协商缓存（ETag/Last-Modified）。强缓存不发请求，协商缓存发送条件请求由服务器判断。',

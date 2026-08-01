@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const engineeringQuestions: InterviewQuestion[] = [
+export const engineeringPoints: TechPoint[] = [
   {
     id: 'webpack-hmr',
     category: '工程化',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Webpack 的 HMR（热模块替换）原理是什么？它与 Vite 的 HMR 有什么区别？',
     summary:
       'Webpack HMR 基于 webpack-dev-server + WebSocket 推送变更，对比模块差异后局部更新。Vite 基于浏览器原生 ESM，HMR 粒度更细、速度更快。',
@@ -49,7 +49,7 @@ if (import.meta.hot) {
   {
     id: 'monorepo',
     category: '工程化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Monorepo 架构如何设计？Turborepo、Nx、pnpm workspace 的工作原理是什么？',
     summary:
       'Monorepo 管理多个包在一个仓库。pnpm workspace 管理依赖、Turborepo/Nx 提供增量构建缓存。核心理念是依赖图驱动的任务编排。',
@@ -121,7 +121,7 @@ packages:
   {
     id: 'vite-principle',
     category: '工程化',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Vite 的核心原理是什么？它是如何做到比 Webpack 快 10-100 倍的？',
     summary:
       'Vite 基于浏览器原生 ESM，开发时不打包，按需编译。生产使用 Rollup 打包。利用 esbuild 预构建依赖，冷启动速度极快。',
@@ -179,7 +179,7 @@ export default defineConfig({
   {
     id: 'engineering-child-process-runner',
     category: '工程化',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '在线 Python 执行器如何实现？child_process.spawn 为什么写临时文件而不是 -c？',
     summary:
       'spawn 执行用户代码，写临时文件而非 spawn -c 避免引号转义且支持长代码；30s 超时 SIGKILL 防死循环；cwd 隔离到 tmpdir，执行完删除；MAX_LEN 截断防过载。',

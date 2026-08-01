@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const v8Questions: InterviewQuestion[] = [
+export const v8Points: TechPoint[] = [
   {
     id: 'v8-gc',
     category: 'V8 & 浏览器',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'V8 引擎的垃圾回收机制是怎样的？Minor GC 和 Major GC 有什么区别？',
     summary:
       'V8 使用分代式 GC，将堆内存分为新生代和老生代。新生代空间小、回收频繁（Scavenge），老生代空间大、回收成本高（Mark-Sweep/Mark-Compact）。',
@@ -59,7 +59,7 @@ V8 将堆分为两大区域：
   {
     id: 'event-loop',
     category: 'V8 & 浏览器',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '浏览器事件循环（Event Loop）的微任务和宏任务执行顺序是怎样的？',
     summary:
       '浏览器 Event Loop: 执行栈 → 微任务队列 → 渲染 → 宏任务队列。微任务（Promise.then、MutationObserver）优先级高于宏任务（setTimeout、setInterval、I/O）。',
@@ -78,7 +78,7 @@ V8 将堆分为两大区域：
 ## 常见任务类型
 **宏任务**：script 整体代码、setTimeout/setInterval、setImmediate、I/O、UI 渲染、MessageChannel
 **微任务**：Promise.then/catch/finally、MutationObserver、queueMicrotask`,
-    code: `// 经典面试题
+    code: `// 典型问题
 console.log('1')
 
 setTimeout(() => {
@@ -111,7 +111,7 @@ console.log('6')
   {
     id: 'browser-render',
     category: 'V8 & 浏览器',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '浏览器的渲染流水线是怎样的？Layout、Paint、Composite 有什么区别？',
     summary:
       '渲染流水线：Style → Layout → Paint → Composite。Layout 计算几何信息，Paint 绘制像素，Composite 合成图层到屏幕。transform/opacity 只需要 Composite 阶段。',
@@ -164,7 +164,7 @@ element.style.transform = 'translateX(10px)'  // 只触发 Composite
   {
     id: 'memory-leak',
     category: 'V8 & 浏览器',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'JavaScript 内存泄漏的常见场景有哪些？如何检测和定位？',
     summary:
       '常见内存泄漏：意外全局变量、未清理的定时器/事件监听、闭包持有 DOM、大数组未释放、缓存无限增长。用 Chrome DevTools Memory 面板检测。',

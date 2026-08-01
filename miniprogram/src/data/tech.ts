@@ -1,18 +1,18 @@
-export interface InterviewLink {
+export interface TechLink {
   title: string
   url: string
   site: string
 }
 
-export interface InterviewQuestion {
+export interface TechPoint {
   id: string
   category: string
-  difficulty: 'medium' | 'hard' | 'expert'
+  depth: 'basic' | 'implementation' | 'principle'
   title: string
   summary: string
   answer: string
   code?: string
-  links: InterviewLink[]
+  links: TechLink[]
 }
 
 export const categoryColors: Record<string, string> = {
@@ -37,17 +37,17 @@ export const categoryTagColors: Record<string, string> = {
   '安全': 'tag-security',
 }
 
-export const difficultyLabels: Record<string, string> = {
-  medium: '中级',
-  hard: '高级',
-  expert: '专家',
+export const depthLabels: Record<string, string> = {
+  basic: '基础概念',
+  implementation: '实现要点',
+  principle: '原理深度',
 }
 
-export const interviewQuestions: InterviewQuestion[] = [
+export const techPoints: TechPoint[] = [
   {
     id: 'react-fiber',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React Fiber 架构是什么？它如何解决 Reconciliation 的性能瓶颈？',
     summary:
       'React Fiber 是 React 16 引入的全新协调引擎，将同步递归 Reconciliation 改为可中断的异步调度，核心是把 Virtual DOM 递归遍历改为链表遍历。',
@@ -99,7 +99,7 @@ function workLoop(root, expirationTime) {
   {
     id: 'react-hooks',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React Hooks 的实现原理？为什么 Hooks 只能在函数最顶层调用？',
     summary:
       'Hooks 通过链表顺序存储在 Fiber 节点的 memoizedState 中，每次渲染按相同顺序读取。必须顶层调用是因为条件分支会改变调用顺序，导致读取错位。',
@@ -165,7 +165,7 @@ function useEffect(create, deps) {
   {
     id: 'react-key',
     category: 'React 原理',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'React 中 key 的作用是什么？为什么不能用 index 作为 key？',
     summary:
       'key 是 Virtual DOM 的"身份证"，React 在 diff 时通过 key 来判断节点身份，正确复用 DOM 节点。使用 index 作为 key 在列表增删时会导致 DOM 复用错误、组件状态错位。',
@@ -196,7 +196,7 @@ key 帮助 React 在 Reconciliation 时识别元素的身份，用于：
   {
     id: 'react-concurrent',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React 并发渲染和时间切片是怎么实现的？',
     summary:
       '并发渲染让 React 可以中断、恢复、跳过渲染工作。时间切片通过 MessageChannel 利用浏览器的空闲时间执行非紧急更新，避免阻塞主线程。',
@@ -228,7 +228,7 @@ Scheduler 模块负责：
   {
     id: 'react-batch',
     category: 'React 原理',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'React 的批量更新是如何实现的？什么场景下会失效？',
     summary:
       'React 18 默认所有更新自动批处理，React 17 及以下版本只有在 React 事件处理函数中的更新才会批处理。',
@@ -261,7 +261,7 @@ React 18 将所有更新标记为 transition，统一调度：
   {
     id: 'v8-gc',
     category: 'V8 & 浏览器',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'V8 引擎的垃圾回收机制是怎样的？Minor GC 和 Major GC 有什么区别？',
     summary:
       'V8 使用分代式 GC，将堆内存分为新生代和老生代。新生代空间小、回收频繁（Scavenge），老生代空间大、回收成本高（Mark-Sweep/Mark-Compact）。',
@@ -305,7 +305,7 @@ V8 将堆分为两大区域：
   {
     id: 'v8-eventloop',
     category: 'V8 & 浏览器',
-    difficulty: 'expert',
+    depth: 'principle',
     title: '浏览器事件循环（Event Loop）的微任务和宏任务执行顺序是怎样的？',
     summary:
       '浏览器 Event Loop: 执行栈 → 微任务队列 → 渲染 → 宏任务队列。微任务（Promise.then、MutationObserver）优先级高于宏任务（setTimeout、setInterval、I/O）。',
@@ -345,7 +345,7 @@ V8 将堆分为两大区域：
   {
     id: 'v8-render',
     category: 'V8 & 浏览器',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '浏览器的渲染流水线是怎样的？Layout、Paint、Composite 有什么区别？',
     summary:
       '渲染流水线：Style → Layout → Paint → Composite。Layout 计算几何信息，Paint 绘制像素，Composite 合成图层到屏幕。transform/opacity 只需要 Composite 阶段。',
@@ -388,7 +388,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'v8-memory',
     category: 'V8 & 浏览器',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'JavaScript 内存泄漏的常见场景有哪些？如何检测和定位？',
     summary:
       '常见内存泄漏：意外全局变量、未清理的定时器/事件监听、闭包持有 DOM、大数组未释放、缓存无限增长。',
@@ -434,7 +434,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'tcp-handshake',
     category: '网络与协议',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'TCP 三次握手为什么不是两次或四次？TIME_WAIT 状态的作用是什么？',
     summary:
       '三次握手是为了确认双方收发能力正常，防止已失效的连接请求报文段突然又传送到了服务端。TIME_WAIT 确保最后一个 ACK 能到达对方。',
@@ -468,7 +468,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'http2',
     category: '网络与协议',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'HTTP/2 的核心特性有哪些？多路复用、头部压缩、服务器推送是怎么实现的？',
     summary:
       'HTTP/2 基于二进制分帧层，支持多路复用、HPACK 头部压缩、服务器推送、流优先级。多路复用解决了 HTTP/1.1 的队头阻塞问题。',
@@ -515,7 +515,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'browser-cache',
     category: '网络与协议',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '浏览器缓存机制有哪些？强缓存和协商缓存的区别是什么？',
     summary:
       '浏览器缓存分为强缓存（Cache-Control/Expires）和协商缓存（ETag/Last-Modified）。强缓存不发请求，协商缓存发送条件请求由服务器判断。',
@@ -564,7 +564,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'webpack-hmr',
     category: '工程化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Webpack 的 HMR（热模块替换）原理是什么？它与 Vite 的 HMR 有什么区别？',
     summary:
       'Webpack HMR 基于 webpack-dev-server + WebSocket 推送变更，对比模块差异后局部更新。Vite 基于浏览器原生 ESM，HMR 粒度更细、速度更快。',
@@ -604,7 +604,7 @@ JavaScript → Style → Layout → Paint → Composite
   {
     id: 'monorepo',
     category: '工程化',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'Monorepo 架构如何设计？Turborepo、Nx、pnpm workspace 的工作原理是什么？',
     summary:
       'Monorepo 管理多个包在一个仓库。pnpm workspace 管理依赖、Turborepo/Nx 提供增量构建缓存。核心理念是依赖图驱动的任务编排。',
@@ -662,7 +662,7 @@ packages:
   {
     id: 'vite',
     category: '工程化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Vite 的核心原理是什么？它是如何做到比 Webpack 快 10-100 倍的？',
     summary:
       'Vite 基于浏览器原生 ESM，开发时不打包，按需编译。生产使用 Rollup 打包。利用 esbuild 预构建依赖，冷启动速度极快。',
@@ -716,7 +716,7 @@ packages:
   {
     id: 'ts-advanced',
     category: 'TypeScript',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'TypeScript 的条件类型、映射类型、模板字面量类型怎么用？',
     summary:
       '条件类型用 extends 做三元判断，映射类型遍历 key 生成新类型，模板字面量类型基于字符串拼接生成类型。',
@@ -771,7 +771,7 @@ type Name = CamelCase<'my_name'>  // 'myName'`,
   {
     id: 'ts-utility',
     category: 'TypeScript',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'TypeScript 中 Partial、Required、Pick、Omit、Record 等工具类型的实现原理？',
     summary:
       '这些工具类型都是基于映射类型和条件类型实现的。通过 keyof、in、extends 等关键字组合实现类型转换。',
@@ -829,7 +829,7 @@ type DeepPartial<T> = {
   {
     id: 'css-bfc',
     category: 'CSS 深入',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSS 的 BFC（块格式化上下文）是什么？它如何解决 margin 折叠和浮动问题？',
     summary:
       'BFC 是一个独立的渲染区域，内部元素不会影响外部。可以通过 overflow:hidden、display:flow-root、position:absolute 等方式创建 BFC。',
@@ -875,7 +875,7 @@ BFC（Block Formatting Context）是 CSS 2.1 规范中的概念，指一个独�
   {
     id: 'css-flex',
     category: 'CSS 深入',
-    difficulty: 'medium',
+    depth: 'basic',
     title: 'Flexbox 的布局原理是什么？justify-content 和 align-items 的区别？',
     summary:
       'Flexbox 是一维布局模型，通过 flex container 和 flex item 实现。justify-content 控制主轴方向，align-items 控制交叉轴方向。',
@@ -918,7 +918,7 @@ BFC（Block Formatting Context）是 CSS 2.1 规范中的概念，指一个独�
   {
     id: 'css-in-js',
     category: 'CSS 深入',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSS-in-JS、CSS Modules、Styled Components 的原理和区别？',
     summary:
       '三者都是解决样式隔离问题。CSS-in-JS 在运行时生成样式，CSS Modules 编译时生成唯一类名，Styled Components 基于 CSS-in-JS 增加组件化能力。',
@@ -979,7 +979,7 @@ const Button = styled.button\`
   {
     id: 'performance-vitals',
     category: '性能优化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Web Vitals 指标有哪些？LCP、FID、CLS 分别衡量什么？如何优化？',
     summary:
       'Core Web Vitals 是 Google 衡量用户体验的核心指标：LCP 衡量加载性能，FID 衡量交互响应，CLS 衡量视觉稳定性。',
@@ -1025,7 +1025,7 @@ const Button = styled.button\`
   {
     id: 'code-splitting',
     category: '性能优化',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: '代码分割（Code Splitting）有哪些方式？React.lazy、动态 import、路由级分割怎么用？',
     summary:
       '代码分割将代码按模块拆分，按需加载。方式包括：路由级分割、组件级分割、第三方库分离、动态 import。',
@@ -1081,7 +1081,7 @@ function MyApp() {
   {
     id: 'xss',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'XSS 攻击的原理是什么？如何从前端角度防御 XSS？',
     summary:
       'XSS 是在页面中注入恶意脚本执行。分为反射型、存储型、DOM 型。防御方法：输入校验、输出转义、CSP、HttpOnly Cookie、DOMPurify。',
@@ -1137,7 +1137,7 @@ function MyApp() {
   {
     id: 'cors',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CORS 跨域的完整流程是怎样的？简单请求和预检请求有什么区别？',
     summary:
       'CORS 通过 HTTP 头部实现跨域资源共享。简单请求直接发送，预检请求先 OPTIONS 协商。',
@@ -1204,7 +1204,7 @@ app.use(cors({
   {
     id: 'csrf',
     category: '安全',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'CSRF 攻击原理是什么？SameSite Cookie 和 Token 验证如何防御？',
     summary:
       'CSRF 诱导已登录用户在不知情的情况下发送请求。防御方法：SameSite Cookie、CSRF Token、Referer/Origin 校验、Double Submit Cookie。',
@@ -1256,17 +1256,17 @@ app.use(cors({
 ]
 
 export function getCategories(): string[] {
-  const categories = new Set(interviewQuestions.map(q => q.category))
+  const categories = new Set(techPoints.map(q => q.category))
   return Array.from(categories)
 }
 
-export function getQuestionsByCategory(category: string): InterviewQuestion[] {
-  return interviewQuestions.filter(q => q.category === category)
+export function getPointsByCategory(category: string): TechPoint[] {
+  return techPoints.filter(q => q.category === category)
 }
 
-export function searchQuestions(keyword: string): InterviewQuestion[] {
+export function searchPoints(keyword: string): TechPoint[] {
   const lower = keyword.toLowerCase()
-  return interviewQuestions.filter(
+  return techPoints.filter(
     q =>
       q.title.toLowerCase().includes(lower) ||
       q.summary.toLowerCase().includes(lower) ||

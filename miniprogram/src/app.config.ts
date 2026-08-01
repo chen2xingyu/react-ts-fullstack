@@ -1,13 +1,13 @@
 export default defineAppConfig({
   pages: [
     'pages/index/index',
-    'pages/interview/interview',
+    'pages/tech/tech',
     'pages/user/user',
   ],
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#3b82f6',
-    navigationBarTitleText: '前端面试题库',
+    navigationBarTitleText: 'React+TS 工程',
     navigationBarTextStyle: 'white',
     backgroundColor: '#f5f5f5',
   },
@@ -24,8 +24,8 @@ export default defineAppConfig({
         selectedIconPath: 'assets/tabbar/home-active.png',
       },
       {
-        pagePath: 'pages/interview/interview',
-        text: '面试',
+        pagePath: 'pages/tech/tech',
+        text: '技术难点',
         iconPath: 'assets/tabbar/book.png',
         selectedIconPath: 'assets/tabbar/book-active.png',
       },

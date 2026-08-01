@@ -1,5 +1,5 @@
 {
-  "description": "前端面试题库小程序",
+  "description": "React+TS 全栈工程小程序",
   "packOptions": {
     "ignore": [],
     "include": []

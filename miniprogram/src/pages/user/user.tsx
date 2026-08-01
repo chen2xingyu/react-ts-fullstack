@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { interviewQuestions, getCategories } from '../../data/interview'
+import { techPoints, getCategories } from '../../data/tech'
 import './user.scss'
 
 export default function User() {
@@ -34,14 +34,14 @@ export default function User() {
         <View className='avatar'>👨‍💻</View>
         <View className='user-info'>
           <Text className='user-name'>前端开发者</Text>
-          <Text className='user-desc'>每天进步一点点，面试不再慌</Text>
+          <Text className='user-desc'>每天进步一点点，技术持续精进</Text>
         </View>
       </View>
 
       <View className='stats-card'>
         <View className='stats-item'>
-          <Text className='stats-num'>{interviewQuestions.length}</Text>
-          <Text className='stats-label'>题库总数</Text>
+          <Text className='stats-num'>{techPoints.length}</Text>
+          <Text className='stats-label'>技术点总数</Text>
         </View>
         <View className='stats-divider' />
         <View className='stats-item'>
@@ -50,15 +50,15 @@ export default function User() {
         </View>
         <View className='stats-divider' />
         <View className='stats-item'>
-          <Text className='stats-num'>{interviewQuestions.length}</Text>
+          <Text className='stats-num'>{techPoints.length}</Text>
           <Text className='stats-label'>已收录</Text>
         </View>
       </View>
 
       <View className='menu-list'>
-        <View className='menu-item' onClick={() => Taro.switchTab({ url: '/pages/interview/interview' })}>
+        <View className='menu-item' onClick={() => Taro.switchTab({ url: '/pages/tech/tech' })}>
           <Text className='menu-icon'>📚</Text>
-          <Text className='menu-text'>开始刷题</Text>
+          <Text className='menu-text'>查看技术难点</Text>
           <Text className='menu-arrow'>›</Text>
         </View>
         <View className='menu-item' onClick={() => {
@@ -95,7 +95,7 @@ export default function User() {
       </View>
 
       <View className='footer'>
-        <Text className='footer-text'>React + TypeScript 面试题库</Text>
+        <Text className='footer-text'>React + TypeScript 技术难点解析</Text>
         <Text className='footer-sub'>Powered by Taro · 仅供学习交流</Text>
       </View>
     </View>

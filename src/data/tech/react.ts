@@ -1,10 +1,10 @@
-import { InterviewQuestion } from './types'
+import { TechPoint } from './types'
 
-export const reactQuestions: InterviewQuestion[] = [
+export const reactPoints: TechPoint[] = [
   {
     id: 'react-fiber',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React Fiber 架构是什么？它如何解决 Reconciliation 的性能瓶颈？',
     summary:
       'React Fiber 是 React 16 引入的全新协调引擎，将同步递归 Reconciliation 改为可中断的异步调度，核心是把 Virtual DOM 递归遍历改为链表遍历。',
@@ -57,7 +57,7 @@ function workLoop(root, expirationTime) {
   {
     id: 'react-hooks-principle',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React Hooks 的实现原理？为什么 Hooks 只能在函数最顶层调用？',
     summary:
       'Hooks 通过链表顺序存储在 Fiber 节点的 memoizedState 中，每次渲染按相同顺序读取。必须顶层调用是因为条件分支会改变调用顺序，导致读取错位。',
@@ -104,7 +104,7 @@ function BadComponent({ show }) {
   {
     id: 'react-key',
     category: 'React 原理',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'React 中 key 的作用是什么？为什么不能用 index 作为 key？',
     summary:
       'key 帮助 React 在 Reconciliation 时识别元素的身份，正确复用 DOM 节点。使用 index 作为 key 在列表增删时会导致 DOM 复用错误、组件状态错位。',
@@ -137,7 +137,7 @@ items.map((item) => <Item key={item.id} {...item} />)`,
   {
     id: 'react-concurrent',
     category: 'React 原理',
-    difficulty: 'expert',
+    depth: 'principle',
     title: 'React 并发渲染和时间切片是怎么实现的？',
     summary:
       '并发渲染让 React 可以中断、恢复、跳过渲染工作。时间切片通过 MessageChannel 利用浏览器的空闲时间执行非紧急更新，避免阻塞主线程。',
@@ -185,7 +185,7 @@ channel.port2.onmessage = () => {
   {
     id: 'react-batching',
     category: 'React 原理',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'React 的批量更新是如何实现的？什么场景下会失效？',
     summary:
       'React 18 默认所有更新自动批处理，React 17 及以下版本只有在 React 事件处理函数中的更新才会批处理，setTimeout、原生事件中的更新不会。',
@@ -221,7 +221,7 @@ setTimeout(() => {
   {
     id: 'react-zustand-state',
     category: 'React 原理',
-    difficulty: 'hard',
+    depth: 'implementation',
     title: 'Zustand 状态管理如何工作？相比 Context/Redux 有什么优势？为什么 auth 状态用它？',
     summary:
       'Zustand 用闭包维护 store，组件通过 selector 订阅切片，set 更新触发精准重渲染。比 Context 无 Provider 嵌套且避免全树重渲染，比 Redux 样板少，适合 auth 这类全局高频读状态。',

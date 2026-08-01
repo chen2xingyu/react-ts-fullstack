@@ -40,8 +40,8 @@ export default function Navbar() {
               <NavLink to="/users" className={linkClass}>
                 用户
               </NavLink>
-              <NavLink to="/interview" className={linkClass}>
-                面试
+              <NavLink to="/tech" className={linkClass}>
+                技术难点
               </NavLink>
               {isAuthenticated && (
                 <>

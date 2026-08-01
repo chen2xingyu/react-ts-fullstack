@@ -107,7 +107,7 @@ reactTs/
 │
 └── docs/                         # 项目文档
     ├── trading-system.md         # 交易系统技术详档
-    └── interview-notes.md        # 面试知识点
+    └── tech-notes.md             # 技术难点解析
 ```
 
 ---
@@ -211,7 +211,7 @@ npm run dev                      # 启动 :5173
 5. **Redis 5 兼容**：用 `XPENDING+XCLAIM` 替代 `XAUTOCLAIM` 回收崩溃消费者的 pending 消息
 6. **风控统一出口**：`rejectRisk` 函数集中"记日志+抛错"，12 类拒绝全部留痕 `risk_logs`
 
-详细技术解析见 [docs/trading-system.md](docs/trading-system.md)，面试知识点见 [docs/interview-notes.md](docs/interview-notes.md)。
+详细技术解析见 [docs/trading-system.md](docs/trading-system.md)，技术难点解析见 [docs/tech-notes.md](docs/tech-notes.md)。
 
 ---
 

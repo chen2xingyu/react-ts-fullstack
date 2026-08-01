@@ -1,18 +1,18 @@
-export interface InterviewLink {
+export interface TechLink {
   title: string
   url: string
   site: '掘金' | 'CSDN' | '知乎' | '博客园' | 'GitHub' | '其他'
 }
 
-export interface InterviewQuestion {
+export interface TechPoint {
   id: string
   category: string
-  difficulty: 'hard' | 'expert'
+  depth: 'implementation' | 'principle'
   title: string
   summary: string
   answer: string
   code?: string
-  links: InterviewLink[]
+  links: TechLink[]
 }
 
 export const categories = [

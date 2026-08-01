@@ -14,6 +14,7 @@
 - **撮合引擎容灾**：Redis 维护活跃限价单快照，Python 崩溃重启后从快照重建订单簿，挂单不丢
 - **12 类风控全留痕**：涨跌停/手数/资金/持仓/重复提交/撤单状态等拒绝均写入 `risk_logs`，可查可审计
 - **TypeScript 100% 覆盖**：前后端共享 `ApiResponse<T>` 泛型契约，编译期拦截类型错误
+- **真实行情可接入**：默认几何布朗运动模拟，`MARKET_SOURCE=real` 一键切新浪真实 A 股行情（交易时段实时价 + 非交易时段以真实收盘价 GBM 降级）
 
 ---
 
@@ -112,37 +113,75 @@ reactTs/
 
 ### 环境准备
 
-- Node.js 18+ · MySQL 8 · Redis 5+ · Python 3.12
-- Python 安装时勾选 "Add python.exe to PATH"
-- Redis（Windows）从 [tporadowski/redis releases](https://github.com/tporadowski/redis/releases) 下载 MSI 装为服务
+| 依赖 | 版本 | 说明 |
+|---|---|---|
+| Node.js | 18+ | 前端 + 后端 |
+| MySQL | 8 | 用户表 + 8 张交易表 |
+| Redis | 5+ | 行情 Pub/Sub + 订单/成交 Stream + 活跃订单快照 |
+| Python | 3.12+ | 交易引擎（行情生成 + 撮合） |
 
-### 1. 后端
+- Python 安装时勾选 **"Add python.exe to PATH"**
+- Redis（Windows）从 [tporadowski/redis releases](https://github.com/tporadowski/redis/releases) 下载 MSI 装为服务，验证：`redis-cli ping` → `PONG`
+- MySQL 验证：`mysql -u root -p` 能登录
+
+### 启动顺序
+
+依赖关系：**MySQL/Redis 服务 → 后端 → Python 引擎 → 前端**。Python 启动时从 Redis 读取后端加载的股票元数据，故必须**后端先启动**。
+
+### 1. 后端（:3000）
 
 ```bash
 cd server
 npm install
-cp .env.example .env          # 填入 MySQL/Redis 连接信息
-npm run init:db                # 建用户表+CRUD 种子
-npm run init:trading-db        # 建 8 张交易表+股票种子+每人 100 万资金
-npm run dev                    # 启动 :3000（nodemon 热重载）
+cp .env.example .env            # 编辑 .env，填入 DB_PASSWORD（MySQL 密码）
+npm run init:db                  # 建用户表 + 种子用户（test@example.com/test123）
+node scripts/init-trading-db.js  # 建 8 张交易表 + 股票种子 + 每人 100 万资金
+npm run dev                      # 启动 :3000（nodemon 热重载）
 ```
+
+启动成功标志：控制台打印 `✅ Redis 连接成功`、`✅ MySQL 连接成功`、`8 只股票已缓存`。
 
 ### 2. 交易引擎（Python）
 
 ```bash
 cd trading-engine
 pip install -r requirements.txt
-python main.py                 # 行情生成 + 撮合引擎
+cp .env.example .env            # 可选：默认连 localhost:6379，无需修改即可跑
+
+# 模拟行情（默认，几何布朗运动，随时可跑）
+python main.py
 ```
 
-### 3. 前端
+切换**真实 A 股行情**（交易时段拉新浪实时价，非交易时段以真实收盘价 GBM 降级）：
 
 ```bash
-npm install
-npm run dev                    # 启动 :5173
+# Windows PowerShell
+$env:MARKET_SOURCE='real'; python main.py
+# Linux / macOS
+MARKET_SOURCE=real python main.py
 ```
 
-访问 http://localhost:5173 ，登录后进入 `/trading` 即可看到实时滚动 K 线、五档盘口，下单/撤单/成交/风控日志全链路联动。
+启动成功标志：打印 `[generator] 加载 N 只股票`、`[matcher] 阶段 6 容灾：从快照重建...`，行情开始推送。
+
+> ⚠️ 真实行情模式需联网访问新浪接口；若网络不通会自动降级 GBM，不影响运行。
+
+### 3. 前端（:5173）
+
+```bash
+# 回到项目根目录
+npm install
+npm run dev                      # 启动 :5173
+```
+
+### 4. 访问
+
+打开 http://localhost:5173 ，用种子账号登录：
+
+| 邮箱 | 密码 |
+|---|---|
+| test@example.com | test123 |
+
+登录后进入交易页 http://localhost:5173/trading ，即可看到实时滚动 K 线、五档盘口，下单/撤单/成交/风控日志全链路联动。其它页面：`/users`（用户 CRUD 演示）、`/project`（项目经历展示）。
 
 ---
 
@@ -179,11 +218,27 @@ npm run dev                    # 启动 :5173
 
 ```bash
 cd server
+node scripts/verify-matching.js        # 撮合引擎 + 成交结算
 node scripts/verify-cancel.js          # 撤单链路 + 资金守恒
 node scripts/verify-rebuild.js         # 订单簿重建容灾
 node scripts/verify-risk-logs.js       # 风控日志全留痕（service 层）
 node scripts/verify-risk-logs-http.js  # 风控日志 HTTP 全链路
 ```
+
+---
+
+## 🛠️ 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| `EADDRINUSE: address already in use :::3000/5173` | 端口被占用。Windows：`netstat -ano \| findstr :3000` 找 PID，`taskkill /PID <pid> /F` |
+| `Access denied for user 'root'@'localhost'` | MySQL 认证失败。确认 `server/.env` 的 `DB_PASSWORD` 正确，且在 `server/` 目录运行脚本（才能加载 .env） |
+| `redis-cli ping` 不返回 PONG | Redis 未启动。Windows 服务里启动 Redis，或运行 `redis-server` |
+| Python `command not found` | 未加入 PATH。用 Python 全路径，或重装勾选 "Add python.exe to PATH" |
+| 真实行情拉取失败 / 自动降级 GBM | 网络不通或被反爬。引擎自动降级模拟行情不影响运行；本项目用新浪接口（akshare 的东财接口易被反爬，故未采用） |
+| `unknown command XAUTOCLAIM` | Redis 5 不支持 XAUTOCLAIM，本项目已用 `XPENDING+XCLAIM` 替代，无需处理 |
+| `git push` 报 `Connection was reset` | GitHub 网络抖动。稍后重试 `git push origin dev` |
+| Python 引擎启动显示"0 只股票" | 后端未先启动。Python 从 Redis 读后端加载的股票元数据，必须**先启动后端**再启动 Python |
 
 ---
 

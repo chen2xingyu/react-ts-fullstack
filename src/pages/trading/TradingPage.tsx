@@ -85,7 +85,7 @@ export default function TradingPage() {
       {/* 主区域：K线 + 五档 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="card lg:col-span-2">
-          <KLineChart kline={kline} history={klineHistory ?? []} />
+          <KLineChart symbol={currentSymbol} kline={kline} history={klineHistory ?? []} />
         </div>
         <DepthBook depth={depth} lastPrice={tick?.price} />
       </div>

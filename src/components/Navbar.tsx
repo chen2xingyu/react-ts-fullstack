@@ -44,7 +44,10 @@ export default function Navbar() {
                 技术难点
               </NavLink>
               <NavLink to="/lab/hooks" className={linkClass}>
-                🧪 面试实验室
+                🧪 Hooks 实验室
+              </NavLink>
+              <NavLink to="/lab/feed" className={linkClass}>
+                📰 Feed 流
               </NavLink>
               {isAuthenticated && (
                 <>

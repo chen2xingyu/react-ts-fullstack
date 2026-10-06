@@ -21,6 +21,8 @@ const PythonRunner = lazy(() => import('@/pages/PythonRunner'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const LabHooks = lazy(() => import('@/modules/lab-hooks/LabHooksPage'))
+const FeedPage = lazy(() => import('@/modules/feed/FeedPage'))
+const PostDetailPage = lazy(() => import('@/modules/feed/PostDetailPage'))
 
 function PageLoading() {
   return (
@@ -49,6 +51,8 @@ export default function AppRouter() {
 
         {/* 🧪 面试实验室 - 公开路由，无需登录 */}
         <Route path="lab/hooks" element={guard(<LabHooks />)} />
+        <Route path="lab/feed" element={guard(<FeedPage />)} />
+        <Route path="lab/feed/:id" element={guard(<PostDetailPage />)} />
 
         {/* 公开路由 - 任何人可访问 */}
         <Route

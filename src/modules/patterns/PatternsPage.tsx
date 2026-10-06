@@ -3,6 +3,7 @@ import { withLoading } from './withLoading'
 import MouseTracker from './MouseTracker'
 import ControlledVsUncontrolled from './ControlledVsUncontrolled'
 import TemperatureConverter from './TemperatureConverter'
+import ConcurrentDemo from './ConcurrentDemo'
 
 /**
  * 🎯 面试考点：组件设计模式展厅
@@ -104,6 +105,8 @@ export default function PatternsPage() {
           考点：兄弟组件共享状态 → 提升到最近公共父组件。单一数据源：只存一方的输入，另一方通过公式推导（不重复存两份）。
         </p>
       </section>
+
+      <ConcurrentDemo />
     </div>
   )
 }

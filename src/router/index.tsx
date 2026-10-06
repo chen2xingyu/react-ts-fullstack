@@ -28,6 +28,8 @@ const TypeLabPage = lazy(() => import('@/modules/type-lab/TypeLabPage'))
 const PerfPage = lazy(() => import('@/modules/perf/PerfPage'))
 const PatternsPage = lazy(() => import('@/modules/patterns/PatternsPage'))
 const ArchPage = lazy(() => import('@/modules/arch/ArchPage'))
+const MetricsPage = lazy(() => import('@/modules/metrics/MetricsPage'))
+const SecurityPage = lazy(() => import('@/modules/security/SecurityPage'))
 
 function PageLoading() {
   return (
@@ -63,6 +65,8 @@ export default function AppRouter() {
         <Route path="lab/perf" element={guard(<PerfPage />)} />
         <Route path="lab/patterns" element={guard(<PatternsPage />)} />
         <Route path="lab/arch" element={guard(<ArchPage />)} />
+        <Route path="lab/metrics" element={guard(<MetricsPage />)} />
+        <Route path="lab/security" element={guard(<SecurityPage />)} />
 
         {/* 公开路由 - 任何人可访问 */}
         <Route

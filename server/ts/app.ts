@@ -8,6 +8,7 @@ import { AppError, v2ErrorHandler } from './lib/errors.js'
 import { healthRouter } from './resources/health/routes.js'
 import { postsRouter } from './resources/posts/routes.js'
 import { securityRouter } from './resources/security/routes.js'
+import { metricsRouter } from './resources/metrics/routes.js'
 
 /**
  * 构建 v2 子应用（TS 与 JS 共用 server/node_modules，故 TS 源码放在 server/ts/ 下）
@@ -22,6 +23,8 @@ export function createV2App() {
   // 安全响应头（防点击劫持、MIME 嗅探等）
   app.use(helmet())
   app.use(express.json({ limit: '1mb' }))
+  // sendBeacon 上报的 Content-Type 是 text/plain，需要 text 解析后再手动 JSON.parse
+  app.use(express.text({ type: 'text/plain', limit: '64kb' }))
 
   // 链路上下文 → 结构化 HTTP 日志
   app.use(requestContext)
@@ -37,6 +40,7 @@ export function createV2App() {
   app.use('/', healthRouter)
   app.use('/', postsRouter)
   app.use('/security', securityRouter)
+  app.use('/', metricsRouter)
 
   // v2 内 404
   app.use((req, _res, next) => {

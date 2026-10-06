@@ -64,6 +64,12 @@ export default function Navbar() {
               <NavLink to="/lab/arch" className={linkClass}>
                 🗺️ 架构图
               </NavLink>
+              <NavLink to="/lab/metrics" className={linkClass}>
+                📊 性能监控
+              </NavLink>
+              <NavLink to="/lab/security" className={linkClass}>
+                🔒 安全实验室
+              </NavLink>
               {isAuthenticated && (
                 <>
                   <NavLink to="/trading" className={linkClass}>

@@ -43,6 +43,9 @@ export default function Navbar() {
               <NavLink to="/tech" className={linkClass}>
                 技术难点
               </NavLink>
+              <NavLink to="/lab/hooks" className={linkClass}>
+                🧪 面试实验室
+              </NavLink>
               {isAuthenticated && (
                 <>
                   <NavLink to="/trading" className={linkClass}>

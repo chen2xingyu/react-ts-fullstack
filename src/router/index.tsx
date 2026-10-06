@@ -20,6 +20,7 @@ const TradingPage = lazy(() => import('@/pages/trading/TradingPage'))
 const PythonRunner = lazy(() => import('@/pages/PythonRunner'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
+const LabHooks = lazy(() => import('@/modules/lab-hooks/LabHooksPage'))
 
 function PageLoading() {
   return (
@@ -45,6 +46,9 @@ export default function AppRouter() {
       <Route path="/" element={<Layout />}>
         <Route index element={guard(<Home />)} />
         <Route path="about" element={guard(<About />)} />
+
+        {/* 🧪 面试实验室 - 公开路由，无需登录 */}
+        <Route path="lab/hooks" element={guard(<LabHooks />)} />
 
         {/* 公开路由 - 任何人可访问 */}
         <Route

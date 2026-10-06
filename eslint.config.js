@@ -11,8 +11,17 @@ export default tseslint.config(
 
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  // react-hooks 官方 flat config（v5+ 支持）
+  // react-hooks flat config，关闭两条 React Compiler 时代的新规则：
+  // - react-hooks/refs：禁止 render 期间读写 ref，但 useInterval/useClickOutside
+  //   的"回调 ref"经典实现（Dan Abramov 模式）正需要 render 期间赋值，是面试标准答案
+  // - react-hooks/set-state-in-effect：throttle 等场景在 effect 里 setState 是合理的
   reactHooks.configs.flat['recommended-latest'],
+  {
+    rules: {
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
 
   {
     files: ['**/*.{ts,tsx}'],

@@ -14,6 +14,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:all": "vitest run",
     "db:migrate": "tsx server/ts/scripts/migrate.ts",
     "db:seed": "tsx server/ts/scripts/seed.ts",
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit"

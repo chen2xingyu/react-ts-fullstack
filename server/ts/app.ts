@@ -7,6 +7,7 @@ import { requestContext } from './lib/requestContext.js'
 import { AppError, v2ErrorHandler } from './lib/errors.js'
 import { healthRouter } from './resources/health/routes.js'
 import { postsRouter } from './resources/posts/routes.js'
+import { securityRouter } from './resources/security/routes.js'
 
 /**
  * 构建 v2 子应用（TS 与 JS 共用 server/node_modules，故 TS 源码放在 server/ts/ 下）
@@ -35,6 +36,7 @@ export function createV2App() {
   // 业务路由
   app.use('/', healthRouter)
   app.use('/', postsRouter)
+  app.use('/security', securityRouter)
 
   // v2 内 404
   app.use((req, _res, next) => {

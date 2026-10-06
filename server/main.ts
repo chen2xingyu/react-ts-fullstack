@@ -16,10 +16,26 @@ import './ts/load-env.js'
 import './ts/bootstrap-env.js'
 import legacyApp from './app.js'
 import { logger } from './ts/lib/logger.js'
+import { gracefulShutdown } from './ts/jobs/shutdown.js'
 
 async function main() {
   logger.info('🅣 /api/v2 (TypeScript) 子应用已注入挂载槽')
   await legacyApp.startServer()
+
+  // 优雅关停信号
+  const signals: NodeJS.Signals[] = ['SIGTERM', 'SIGINT']
+  for (const sig of signals) {
+    process.on(sig, async () => {
+      try {
+        await gracefulShutdown()
+        logger.info('👋 优雅关停完成')
+        process.exit(0)
+      } catch (err) {
+        logger.error({ err }, '❌ 优雅关停失败')
+        process.exit(1)
+      }
+    })
+  }
 }
 
 main().catch((err) => {

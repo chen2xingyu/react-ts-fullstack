@@ -7,6 +7,7 @@ import {
   createCommentSchema,
 } from '../../../../shared/contracts/post.schema.js'
 import * as postsService from './posts.service.js'
+import { notificationQueue } from '../../jobs/notificationQueue.js'
 
 export const postsRouter = Router()
 
@@ -63,9 +64,46 @@ postsRouter.post(
     const comment = await postsService.createComment(id, input.author, input.content)
     // 评论后失效详情缓存（comment_count 变了）
     cacheDel(`post:${id}`)
+    /**
+     * 🎯 面试考点：非关键路径异步化
+     * 发通知丢进队列立即返回，不阻塞评论接口 RT。
+     * jobId 用 comment 主键 → BullMQ 对相同 jobId 去重，天然幂等防重复入队。
+     */
+    await notificationQueue.add(
+      'comment-notification',
+      { commentId: comment.id, postId: id, author: comment.author, content: comment.content },
+      { jobId: `comment-${comment.id}` },
+    )
     res.status(201).json({ code: 0, message: 'ok', data: comment })
   }),
 )
+
+/** 查询队列任务状态（演示：任务生命周期可追溯） */
+postsRouter.get(
+  '/jobs/:jobId',
+  asyncHandler(async (req, res) => {
+    const job = await notificationQueue.getJob(req.params.jobId)
+    if (!job) throw errors.notFound(`任务不存在: ${req.params.jobId}`)
+    const state = await job.getState()
+    res.json({
+      code: 0,
+      message: 'ok',
+      data: {
+        id: job.id,
+        state, // waiting / active / completed / failed
+        attemptsMade: job.attemptsMade,
+        returnvalue: job.returnvalue,
+        failedReason: job.failedReason,
+      },
+    })
+  }),
+)
+
+/** 队列事件流（演示：QueueEvents 实时感知完成/失败） */
+postsRouter.get('/jobs-events/wait', (_req, res) => {
+  // 简化演示：真实场景可用 SSE 推送 QueueEvents 的 completed/failed 事件
+  res.json({ code: 0, message: 'ok', data: { listening: true } })
+})
 
 /**
  * 点赞：限流 1s 内最多 3 次 + 幂等（UNIQUE 键）

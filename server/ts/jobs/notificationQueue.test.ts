@@ -4,6 +4,53 @@ import '../load-env.js'
 import { createV2App } from '../app.js'
 import supertest from 'supertest'
 import { notificationQueue, notificationEvents, closeNotificationQueue } from './notificationQueue.js'
+import type { Job } from 'bullmq'
+
+/**
+ * 🎯 面试考点：批量等待任务完成的正确姿势
+ * 30 个 job.waitUntilFinished() 会各自往 QueueEvents 挂监听器，
+ * 并发时超过 Node EventEmitter 默认 10 个上限 → MaxListenersExceededWarning。
+ * 正确做法：只挂一个 completed/failed 监听器，用 Set 收集完成进度。
+ * 注意先查一轮状态兜底 —— 任务可能先于监听器挂载就已完成（竞态）。
+ */
+async function waitForJobs(jobs: Job[], timeout = 10000): Promise<void> {
+  const pending = new Set(jobs.map((j) => j.id!))
+
+  // 先剔除已完成的（竞态兜底）
+  await Promise.all(
+    jobs.map(async (j) => {
+      if ((await j.getState()) === 'completed') pending.delete(j.id!)
+    }),
+  )
+  if (pending.size === 0) return
+
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup()
+      reject(new Error(`等待超时，剩余 ${pending.size} 个任务未完成`))
+    }, timeout)
+    const onCompleted = ({ jobId }: { jobId: string }) => {
+      pending.delete(jobId)
+      if (pending.size === 0) {
+        cleanup()
+        resolve()
+      }
+    }
+    const onFailed = ({ jobId, failedReason }: { jobId: string; failedReason: string }) => {
+      if (pending.has(jobId)) {
+        cleanup()
+        reject(new Error(`任务 ${jobId} 失败: ${failedReason}`))
+      }
+    }
+    const cleanup = () => {
+      clearTimeout(timer)
+      notificationEvents.off('completed', onCompleted)
+      notificationEvents.off('failed', onFailed)
+    }
+    notificationEvents.on('completed', onCompleted)
+    notificationEvents.on('failed', onFailed)
+  })
+}
 
 /**
  * 🎯 面试考点：BullMQ 集成测试策略
@@ -70,6 +117,43 @@ describe('评论后通知队列', () => {
     const res = await request.get(`/jobs/${job.id}`).expect(200)
     expect(res.body.data.id).toBe(job.id)
     expect(['waiting', 'active', 'completed']).toContain(res.body.data.state)
+  })
+})
+
+describe('高并发与幂等', () => {
+  it('并发入队 30 条任务，Worker 全部消费完成', async () => {
+    const count = 30
+    const jobs = await Promise.all(
+      Array.from({ length: count }, (_, i) =>
+        notificationQueue.add('burst-test', {
+          commentId: 2000 + i,
+          postId: 1,
+          author: 'concurrent',
+          content: `burst-${i}`,
+        }),
+      ),
+    )
+
+    // 等待所有任务完成（单任务几乎瞬时，30 条在 concurrency=5 下约 1-2s）
+    await waitForJobs(jobs, 10000)
+
+    const states = await Promise.all(jobs.map((j) => j.getState()))
+    expect(states.every((s) => s === 'completed')).toBe(true)
+  })
+
+  it('相同 jobId 并发入队，队列幂等只保留一个任务', async () => {
+    const jobId = `dup-${Date.now()}`
+    const payload = { commentId: 9999, postId: 1, author: 'dup', content: 'dup' }
+
+    // 同一时刻并发 add 3 次
+    const [j1, j2, j3] = await Promise.all([
+      notificationQueue.add('dup', payload, { jobId }),
+      notificationQueue.add('dup', payload, { jobId }),
+      notificationQueue.add('dup', payload, { jobId }),
+    ])
+
+    // BullMQ 对重复 jobId 去重，三次返回同一个实例
+    expect(new Set([j1.id, j2.id, j3.id]).size).toBe(1)
   })
 })
 

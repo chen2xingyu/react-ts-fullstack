@@ -52,6 +52,9 @@ export default function Navbar() {
               <NavLink to="/lab/kanban" className={linkClass}>
                 📋 任务看板
               </NavLink>
+              <NavLink to="/lab/types" className={linkClass}>
+                📐 TS 展厅
+              </NavLink>
               {isAuthenticated && (
                 <>
                   <NavLink to="/trading" className={linkClass}>

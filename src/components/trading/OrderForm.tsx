@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { placeOrder } from '@/api/trading'
 import { ORDER_SIDE, ORDER_TYPE } from '@/types/trading'
@@ -47,8 +47,11 @@ export default function OrderForm({
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
   // 阶段 5：五档点价 → 自动填入委托价并切到限价模式（nonce 保证同价可重复触发）
+  // 记录已消费的 nonce，避免在 effect 里同步 setState 造成级联渲染
+  const consumedPriceNonce = useRef<number | undefined>(undefined)
   useEffect(() => {
-    if (pickedPrice) {
+    if (pickedPrice && pickedPrice.nonce !== consumedPriceNonce.current) {
+      consumedPriceNonce.current = pickedPrice.nonce
       setPrice(String(pickedPrice.value))
       setOrderType(ORDER_TYPE.LIMIT)
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AccountBar from '@/components/trading/AccountBar'
 import KLineChart from '@/components/trading/KLineChart'
@@ -41,10 +41,14 @@ export default function TradingPage() {
   const current = stocks?.find((s) => s.symbol === symbol) || stocks?.[0]
   const currentSymbol = current?.symbol
 
-  // 切换标的时清空点价（OrderForm 因 key 变化已重置内部价格）
-  useEffect(() => {
+  // 🎯 面试考点：根据 state 变化重置另一个 state，React 官方推荐在 render 期间做
+  // （见 "You Might Not Need an Effect"），而不是放 useEffect 里触发一次级联渲染。
+  // React 会在提交前立即重渲染并丢弃本次渲染结果，不会产生真实 DOM 更新。
+  const [prevSymbol, setPrevSymbol] = useState(currentSymbol)
+  if (currentSymbol !== prevSymbol) {
+    setPrevSymbol(currentSymbol)
     setPickedPrice(undefined)
-  }, [currentSymbol])
+  }
 
   // K线历史（首次拉取，后续由 WS 实时更新）
   const { data: klineHistory } = useQuery<Kline[]>({

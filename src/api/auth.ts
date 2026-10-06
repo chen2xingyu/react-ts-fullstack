@@ -1,6 +1,7 @@
 import request from './request'
 import type { ApiResponse } from './request'
 import type { AuthUser } from '@/store/auth'
+import type { AxiosRequestConfig } from 'axios'
 
 export interface LoginResponse {
   user: AuthUser
@@ -9,7 +10,7 @@ export interface LoginResponse {
   expiresIn: string
 }
 
-export interface RegisterResponse extends LoginResponse {}
+export type RegisterResponse = LoginResponse
 
 // 用户登录
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -39,9 +40,12 @@ export async function refreshToken(refreshToken: string): Promise<{
   accessToken: string
   expiresIn: string
 }> {
-  const res = await request.post('/auth/refresh', {
-    refreshToken,
-  }) as unknown as ApiResponse<{ accessToken: string; expiresIn: string }>
+  const res = await request.post(
+    '/auth/refresh',
+    { refreshToken },
+    // 标记“这是刷新令牌请求”，防止其 401 再次触发刷新流程造成死锁
+    { _isRefreshRequest: true } as AxiosRequestConfig
+  ) as unknown as ApiResponse<{ accessToken: string; expiresIn: string }>
   return res.data
 }
 

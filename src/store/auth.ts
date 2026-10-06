@@ -33,31 +33,42 @@ interface AuthActions {
 const TOKEN_KEY = 'react_ts_auth_tokens'
 const USER_KEY = 'react_ts_auth_user'
 
+// localStorage 在隐私模式 / 存储被禁用 / 配额满时会抛异常，
+// 这里有意吞掉：认证退化为内存态（刷新后丢失），不影响主流程。
+
 function saveTokens(accessToken: string, refreshToken: string) {
   try {
     localStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, refreshToken }))
-  } catch {}
+  } catch {
+    /* 存储不可用：降级为内存态 */
+  }
 }
 
 function loadTokens(): { accessToken: string | null; refreshToken: string | null } {
   try {
     const data = localStorage.getItem(TOKEN_KEY)
     if (data) return JSON.parse(data)
-  } catch {}
+  } catch {
+    /* 数据损坏或存储不可用：视为未登录 */
+  }
   return { accessToken: null, refreshToken: null }
 }
 
 function saveUser(user: AuthUser) {
   try {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
-  } catch {}
+  } catch {
+    /* 存储不可用：降级为内存态 */
+  }
 }
 
 function loadUser(): AuthUser | null {
   try {
     const data = localStorage.getItem(USER_KEY)
     if (data) return JSON.parse(data)
-  } catch {}
+  } catch {
+    /* 数据损坏或存储不可用：视为未登录 */
+  }
   return null
 }
 
@@ -65,7 +76,9 @@ function clearAuth() {
   try {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
-  } catch {}
+  } catch {
+    /* 存储不可用：无需处理 */
+  }
 }
 
 // ============ 初始化 ============

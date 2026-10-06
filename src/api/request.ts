@@ -16,6 +16,12 @@ const request: AxiosInstance = axios.create({
   },
 })
 
+// 内部扩展的请求配置：_retry 标记已重试过，_isRefreshRequest 标记这是刷新令牌请求本身
+type RetryableRequestConfig = AxiosRequestConfig & {
+  _retry?: boolean
+  _isRefreshRequest?: boolean
+}
+
 // 是否正在刷新 Token（避免并发刷新）
 let isRefreshing = false
 let pendingRequests: Array<{
@@ -40,10 +46,24 @@ request.interceptors.response.use(
     if (res.code !== undefined && res.code !== 0) {
       return Promise.reject(new Error(res.message || '请求失败'))
     }
-    return res
-  }) as any,
+    // 拦截器把 AxiosResponse 整体替换成业务信封体 ApiResponse，
+    // 与 axios 内置返回类型冲突，属边界层类型豁免（调用方拿到的就是 ApiResponse）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return res as any
+  }),
   async (error) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as RetryableRequestConfig
+
+    // 🎯 面试考点：刷新令牌的请求自身返回 401（refresh token 过期/无效）时，
+    // 必须直接拒绝、走登出流程。若继续进入刷新分支，它会把自己挂进
+    // pendingRequests 等待一个永远不会 resolve 的新令牌 —— 死锁，
+    // 表现为所有请求永久 pending、页面一直“加载中”且不会跳转登录页。
+    if (
+      error.response?.status === 401 &&
+      originalRequest._isRefreshRequest
+    ) {
+      return Promise.reject(error)
+    }
 
     // 如果是 401 且不是重试过的请求，尝试刷新 Token
     if (error.response?.status === 401 && !originalRequest._retry) {

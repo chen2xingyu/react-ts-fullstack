@@ -25,6 +25,7 @@ const FeedPage = lazy(() => import('@/modules/feed/FeedPage'))
 const PostDetailPage = lazy(() => import('@/modules/feed/PostDetailPage'))
 const KanbanPage = lazy(() => import('@/modules/kanban/KanbanPage'))
 const TypeLabPage = lazy(() => import('@/modules/type-lab/TypeLabPage'))
+const PerfPage = lazy(() => import('@/modules/perf/PerfPage'))
 
 function PageLoading() {
   return (
@@ -57,6 +58,7 @@ export default function AppRouter() {
         <Route path="lab/feed/:id" element={guard(<PostDetailPage />)} />
         <Route path="lab/kanban" element={guard(<KanbanPage />)} />
         <Route path="lab/types" element={guard(<TypeLabPage />)} />
+        <Route path="lab/perf" element={guard(<PerfPage />)} />
 
         {/* 公开路由 - 任何人可访问 */}
         <Route

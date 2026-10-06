@@ -19,6 +19,7 @@
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.52.0",
     "axios": "^1.7.7",
     "dotenv": "^18.0.5",
@@ -29,6 +30,7 @@
     "prismjs": "^1.30.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-hook-form": "^7.89.0",
     "react-router-dom": "^6.26.0",
     "react-simple-code-editor": "^0.14.1",
     "zod": "^4.6.5",

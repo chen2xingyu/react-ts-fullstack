@@ -49,6 +49,9 @@ export default function Navbar() {
               <NavLink to="/lab/feed" className={linkClass}>
                 📰 Feed 流
               </NavLink>
+              <NavLink to="/lab/kanban" className={linkClass}>
+                📋 任务看板
+              </NavLink>
               {isAuthenticated && (
                 <>
                   <NavLink to="/trading" className={linkClass}>

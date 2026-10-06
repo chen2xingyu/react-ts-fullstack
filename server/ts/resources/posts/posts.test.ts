@@ -10,7 +10,7 @@
  * 数据策略：点赞有 UNIQUE 键天然幂等，重复跑测试结果一致；
  * 评论每次新增几条演示数据，不影响断言。
  */
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import supertest from 'supertest'
 import '../../load-env.js'
 import { createV2App } from '../../app.js'

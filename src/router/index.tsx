@@ -23,6 +23,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'))
 const LabHooks = lazy(() => import('@/modules/lab-hooks/LabHooksPage'))
 const FeedPage = lazy(() => import('@/modules/feed/FeedPage'))
 const PostDetailPage = lazy(() => import('@/modules/feed/PostDetailPage'))
+const KanbanPage = lazy(() => import('@/modules/kanban/KanbanPage'))
 
 function PageLoading() {
   return (
@@ -53,6 +54,7 @@ export default function AppRouter() {
         <Route path="lab/hooks" element={guard(<LabHooks />)} />
         <Route path="lab/feed" element={guard(<FeedPage />)} />
         <Route path="lab/feed/:id" element={guard(<PostDetailPage />)} />
+        <Route path="lab/kanban" element={guard(<KanbanPage />)} />
 
         {/* 公开路由 - 任何人可访问 */}
         <Route

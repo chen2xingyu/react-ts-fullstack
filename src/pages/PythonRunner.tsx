@@ -9,6 +9,10 @@ import { runPython, type RunResult } from '@/api/python'
 // 一键选股脚本：新浪行情接口（与项目 realtime_source.py 同源，反爬弱稳定）
 // 从 100 只沪深主流龙头股计算量比（今日成交量/5日均量），按量比降序排名
 // 只用 requests + 标准库（含 concurrent.futures 并行拉K线），任意 Python 环境均可跑
+// 🎯 面试考点：String.raw —— 把模板字符串当「原样字符串」用
+// 这段 Python 代码里有 \n、\w 这类反斜杠序列，普通模板字符串会把 \n 解释成换行、
+// 把 \\w 转义掉，代码就坏了；String.raw 让模板保持原始反斜杠不做转义。
+// 它本质是一段「静态文本资产」，放组件外只在模块加载时创建一次，不随渲染重建。
 const STOCK_PICKER_CODE = String.raw`import requests, re, json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -127,6 +131,10 @@ print(f'\n共 {len(rows)} 只  |  量比 = 今日成交量 / 前5日平均成交
 `
 
 // 内置示例代码（String.raw 保留 \n \w 等字面量，确保 Python 代码正确）
+// 🎯 面试考点：Record<string, string> —— TS 内置工具类型
+// 等价于 { [k: string]: string }：键任意、值都是字符串。
+// TS→JS：Record 是纯类型，编译后整个注解消失，运行时就是个普通对象字面量。
+// 易错：某个值写成数字等类型不匹配，会在编译期报错。
 const EXAMPLES: Record<string, string> = {
   'pandas 基础': String.raw`import pandas as pd
 
@@ -175,9 +183,18 @@ for s in stocks:
 const MONO = 'Consolas, Monaco, "Courier New", monospace'
 
 export default function PythonRunner() {
+  // 🎯 面试考点：受控编辑器 + 结果态的初始值
+  // code：编辑器内容，受控（value=code + onValueChange=setCode），初始值默认示例。
+  // result: RunResult | null —— null 表示「还没跑过」，跑成功填结果、跑失败也填一个
+  //   带 stderr 的结果。用「可空联合」而不是空对象 {}，区分「未跑」与「跑完无输出」。
   const [code, setCode] = useState(EXAMPLES['pandas 基础'])
   const [result, setResult] = useState<RunResult | null>(null)
 
+  // 🎯 面试考点：useMutation 把「loading/成功/失败」状态机托管给 React Query
+  // mutationFn 指向 runPython（发请求执行 Python）；onSuccess 写结果，onError 把
+  // 异常转成 stderr 展示。组件直接用 mut.isPending 判断 loading —— 比自己手写
+  // const [loading, setLoading] + try/finally 少犯错（漏 finally、请求竞态）。
+  // 追问：查询用 useQuery、变更/动作用 useMutation，这是 React Query 的分工。
   const mut = useMutation({
     mutationFn: runPython,
     onSuccess: (res) => setResult(res.data),
@@ -185,6 +202,10 @@ export default function PythonRunner() {
       setResult({ stdout: '', stderr: e.message, exitCode: -1, timedOut: false }),
   })
 
+  // 🎯 面试考点：防重复提交 —— disabled={mut.isPending}
+  // mutate 是「发一次请求」的触发器，不是 hook；运行中把按钮 disabled 掉，避免连点
+  // 产生并发请求（后端 spawn Python 有成本）。正确写法靠 isPending 自动禁用，
+  // 而不是再手动维护一个 submitting state。
   const handleRun = () => mut.mutate(code)
 
   // 一键选股：载入脚本到编辑器（可见可改）并立即执行
@@ -243,6 +264,10 @@ export default function PythonRunner() {
             </button>
           </div>
           <div className="overflow-auto max-h-[600px]" style={{ fontFamily: MONO }}>
+            {/* 🎯 面试考点：第三方编辑器也是受控组件
+                value/onValueChange 跟原生 textarea 受控一个道理：数据源是 code state，
+                输入只走 setCode。highlight={(c) => Prism.highlight(...)} 每次渲染都重跑
+                一遍语法高亮 —— 大文件输入时是性能热点，可按需缓存/节流。 */}
             <Editor
               value={code}
               onValueChange={setCode}
@@ -263,6 +288,12 @@ export default function PythonRunner() {
             </span>
           </div>
           <div className="p-4 overflow-auto max-h-[600px]" style={{ fontFamily: MONO }}>
+            {/* 🎯 面试考点：渲染后端返回的文本，防 XSS
+                result.stdout/stderr 是服务端 Python 的输出，可能含 <script>。这里用
+                <pre>{result.stdout}</pre> 作为 React 子节点渲染 —— React 对文本自动
+                转义，尖括号变成普通字符，绝不会当 HTML 执行。
+                红线：绝不要 dangerouslySetInnerHTML={{__html: result.stdout}}。
+                whitespace-pre-wrap 保留输出里的换行与缩进。 */}
             {mut.isPending && <p className="text-gray-400 text-sm">执行中…</p>}
             {!mut.isPending && !result && (
               <p className="text-gray-400 text-sm">点击「运行」查看结果</p>

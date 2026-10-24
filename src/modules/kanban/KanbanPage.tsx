@@ -15,6 +15,10 @@ import type { Task, TaskFormValues } from './types'
  */
 
 export default function KanbanPage() {
+  // 🎯 面试考点：Provider 为什么必须包在 KanbanLayout 外层？
+  // useKanban() 只能在 <KanbanProvider> 的子组件里调；KanbanPage 自己
+  // 不能直接 useKanban（它还没被 Provider 包住），所以拆出 KanbanLayout
+  // 作为"被 Provider 包裹的那一层"来消费 Context。这是 Context 用法的固定套路。
   return (
     <KanbanProvider>
       <KanbanLayout />
@@ -24,6 +28,8 @@ export default function KanbanPage() {
 
 function KanbanLayout() {
   const { tasks, dispatch } = useKanban()
+  // editing=null 表示"新建"，非 null 表示"编辑哪一条"——表单模式由它派生，
+  // 避免再开一个 mode 状态；showForm 控制表单显隐
   const [editing, setEditing] = useState<Task | null>(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -91,6 +97,8 @@ function KanbanLayout() {
       <Kanban.Board>
         {TASK_STATUSES.map((status) => (
           <Kanban.Column key={status} status={status}>
+            {/* 演示：每列直接 filter。进阶优化是用 useMemo 按 status 分组一次
+                （Map<status, Task[]>），避免这里对同一 tasks 做 3 次过滤 */}
             {tasks
               .filter((t) => t.status === status)
               .map((t) => (

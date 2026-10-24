@@ -106,7 +106,10 @@ function CommentSection({ postId }: { postId: number }) {
   const [comments, setComments] = useState<Comment[]>([])
   const [loaded, setLoaded] = useState(false)
 
-  // 加载评论
+  // 🎯 卸载/参数切换竞态防护：cancelled 标志——effect cleanup 置 true，
+  // 若请求返回时组件已卸载（或 postId 已变），不再 setState，
+  // 避免"对已卸载组件 setState"的脏数据覆盖。
+  // （进阶：React 18 已移除该警告，但防脏数据的语义仍然成立。）
   useEffect(() => {
     let cancelled = false
     fetchComments(postId).then((list) => {
@@ -197,6 +200,8 @@ function Skeleton() {
 // ============================================================================
 
 export default function PostDetailPage() {
+  // useParams 拿到的永远是 string（URL 片段），需自己 Number() 转换并校验；
+  // 下面 postId>0 拦截非法 id，属于路由参数的兜底处理。
   const { id } = useParams<{ id: string }>()
   const postId = Number(id)
 

@@ -24,6 +24,14 @@ export default function SecurityPage() {
 }
 
 /* ── XSS 演示 ── */
+// 🎯 面试必背：XSS 三型区分（常考）
+//   1. 存储型（Stored）：恶意脚本被存进数据库（评论/简介），其他用户访问时被读取执行
+//      —— 危害最大，影响面广。
+//   2. 反射型（Reflected）：恶意脚本拼在 URL 参数里，服务端「反射」回页面立即执行
+//      —— 典型载体是钓鱼链接 https://x.com/search?q=<script>...。
+//   3. DOM 型：服务端根本没参与，纯前端 JS 把 location.hash / location.search
+//      直接塞进 innerHTML —— 本演示的 payload 若被写入 innerHTML 就是 DOM 型。
+// 共性：本质都是「数据被当成代码执行」；防御核心=输入转义 + 输出编码 + CSP。
 const XSS_PAYLOAD = '<img src=x onerror="alert(\'XSS 攻击成功\')">'
 
 function XssDemo() {
@@ -40,11 +48,22 @@ function XssDemo() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
           <div className="mb-2 text-xs font-medium text-red-700">❌ dangerouslySetInnerHTML（危险）</div>
+          {/* 🎯 原理：React 默认对 JSX 插值做 HTML 实体转义（< → &lt; 等），
+              所以 {input} 天然安全；但 dangerouslySetInnerHTML 是「显式告诉 React
+              这就是 HTML，别转义」，于是 <img onerror=...> 被原样插入 DOM → 立即触发。
+              正误对比：
+              ✅ <div>{userInput}</div>                 —— 当纯文本渲染，安全
+              ✅ <div dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(html)}} /> —— 富文本必须先消毒
+              ❌ <div dangerouslySetInnerHTML={{__html: userInput}} /> —— 裸奔，等同 innerHTML
+              追问：为什么叫 __html 双下划线？历史上是为了「防止用户直接用」，
+              提醒开发者这是 escape hatch，不是普通 API。 */}
           <div data-testid="xss-dangerous" className="min-h-[40px] rounded bg-white p-2 text-sm" dangerouslySetInnerHTML={{ __html: input }} />
           <p className="mt-2 text-xs text-red-600">onerror 会执行 alert（真实环境会偷 Cookie/发请求）</p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
           <div className="mb-2 text-xs font-medium text-emerald-700">✅ textContent / JSX 插值（安全）</div>
+          {/* 🎯 原理：{input} 走的是 createTextNode → 等价于 textContent，
+              浏览器把内容当纯文本，< > " ' 全部当字符显示，不解析标签。 */}
           <div data-testid="xss-safe" className="min-h-[40px] rounded bg-white p-2 text-sm">{input}</div>
           <p className="mt-2 text-xs text-emerald-600">React 默认转义，HTML 被当纯文本显示</p>
         </div>
@@ -57,6 +76,24 @@ function XssDemo() {
 }
 
 /* ── CSRF 演示 ── */
+// 🎯 面试考点：CSRF（跨站请求伪造）原理一句话——
+//   「浏览器在请求时会自动带上目标域的 Cookie」，所以恶意站点只要能诱导
+//   你的浏览器「自动发一个 POST 到银行接口」，服务器就分不清是你点的还是别人骗的。
+//
+// 🎯 本演示三按钮对应的三种防御姿势：
+//   1. ✅ 带 X-CSRF-Token（自定义 header）—— 为什么恶意站点伪造不了？
+//      因为 Content-Type: application/json + 自定义 header 属于「非简单请求」，
+//      浏览器会先发 OPTIONS 预检，恶意站点的响应没有 CORS 放行，真实请求根本发不出去。
+//   2. 🛡️ 不带 Token（被拦截 403）—— 服务端校验失败直接拒。
+//   3. ⚠️ 无防护接口 —— 演示「裸奔」状态下谁都能调。
+//
+// 🎯 三大防御（必背）：
+//   - CSRF Token：服务端下发随机 token，前端请求时回传，跨站读不到这个值。
+//   - SameSite Cookie=Lax/Strict：浏览器规定跨站请求不带 Cookie（最现代方案）。
+//   - 校验 Origin / Referer header：服务端判断请求是不是自家页面发的。
+//
+// 🎯 顺带一句 CSP：Content-Security-Policy 响应头限制「脚本只能从哪个源加载、
+//    禁止 inline script」，即使 XSS 注入成功也执行不了，是 XSS 的第二道防线。
 function CsrfDemo() {
   const [balance, setBalance] = useState(1000)
   const [log, setLog] = useState<string[]>([])

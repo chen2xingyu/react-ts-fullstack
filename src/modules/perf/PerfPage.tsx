@@ -18,6 +18,14 @@ function makeRows(size: number): RowData[] {
   }))
 }
 
+/**
+ * 🎯 面试考点：为什么「无关 state」会拖垮整个列表？
+ *   unrelated 这个 state 和行数据毫无关系，但只要 onChange 触发 setUnrelated，
+ *   CompareBoard 函数体重新执行 → 返回的新 element 树里 1000 个 NaiveRow element
+ *   全部被「重新声明」→ React 默认级联重渲染每一行。
+ *   这就是「React 没有组件级响应式粒度」的典型代价，也是大厂列表页
+ *   动辄上万行时必须上虚拟滚动 + memo 的原因。
+ */
 function CompareBoard({ size = 500 }: { size?: number }) {
   const [unrelated, setUnrelated] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
@@ -28,11 +36,23 @@ function CompareBoard({ size = 500 }: { size?: number }) {
 
   // 🎯 关键对比：内联闭包 vs useCallback
   // naiveSelect 每次 render 都创建新函数 → OptimizedRow 的 memo 会失效
+  // 追问：useCallback 到底缓存了什么？
+  //   它缓存的是「函数引用」本身，不是函数的执行结果。
+  //   依赖 [] 表示组件生命周期内这个引用永远是同一个函数对象。
+  //   代价：每次 render 都要跑一遍依赖数组浅比较，依赖多时反而有开销。
+  // 易错：useCallback 的依赖里放了一个每次都新建的值（比如内联对象），
+  //   那 useCallback 等于白写——引用照样每次都变。
   const naiveSelect = (id: number) => setSelected(id)
   // optSelect 引用稳定 → memo 命中缓存
   const optSelect = useCallback((id: number) => setSelected(id), [])
 
   // 🎯 items 用 useMemo 保持数组引用稳定
+  // 追问：useMemo 和 useCallback 的关系？
+  //   useCallback(fn, deps) 等价于 useMemo(() => fn, deps) —— 后者缓存函数本身，
+  //   前者缓存「返回值」。这里 items 缓存的是整个数组的引用，
+  //   OptimizedRow 拿到的 item 是数组里的同一个对象，浅比较才会命中。
+  // 反面教材：不写 useMemo，每次 render 都 makeRows(size) 新建数组，
+  //   即使每个 row 对象字段没变，memo 也会因为「数组引用变了」连带判断失败。
   const items = useMemo(() => makeRows(size), [size])
 
   return (
@@ -61,6 +81,12 @@ function CompareBoard({ size = 500 }: { size?: number }) {
             ❌ 朴素版（内联闭包 + 无 memo）
           </div>
           <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+            {/* 🎯 读法指南：actualDuration 是「这次 commit 从 root 渲染本 Profiler 子树的耗时」。
+                想现场给面试官看数据：Chrome DevTools → Components → 开启
+                "Highlight updates when components render"，能看到每敲一个字符，
+                左侧 1000 行整片闪红、右侧几乎不闪；
+                更定量的看 Performance/Profiler 面板的火焰图，找 commit 柱子高度差。
+                why-did-you-render 库的思路也是：hook memo 比较过程，打印「谁让我重渲染」。 */}
             <Profiler id="naive" onRender={(_, __, actual) => { naiveMs.current = actual }}>
               {items.map((item) => (
                 <NaiveRow key={item.id} item={item} onSelect={naiveSelect} />

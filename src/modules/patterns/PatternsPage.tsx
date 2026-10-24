@@ -32,6 +32,9 @@ function PostCard({ title, summary }: PostCardProps) {
     </div>
   )
 }
+// 🎯 关键：HOC 在【模块顶层/组件外】调用一次，得到稳定的新组件类型。
+//   若写进 PatternsPage 函数体里（每次渲染都 const X = withLoading(PostCard)），
+//   每次渲染生成新组件类型 → React 判定为不同组件 → 卸载重挂整棵子树、丢失内部 state。
 const PostCardWithLoading = withLoading(PostCard)
 
 /* ── 页面组装 ── */

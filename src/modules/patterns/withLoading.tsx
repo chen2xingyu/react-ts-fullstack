@@ -18,6 +18,8 @@ export interface WithLoadingProps {
   loading?: boolean
 }
 
+// ComponentType<P> = ComponentClass<P> | FunctionComponent<P> 的联合类型，
+//   表示“类组件或函数组件都能被包裹”。TS→JS：这个泛型联合运行时完全擦除。
 export function withLoading<P extends object>(Wrapped: ComponentType<P>) {
   function WithLoading({ loading, ...props }: P & WithLoadingProps) {
     if (loading) {

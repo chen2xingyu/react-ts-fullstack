@@ -1,3 +1,8 @@
+/**
+ * 关于页：纯静态展示（无状态、无请求），是典型的“被 React.lazy 懒加载”页面。
+ * 考点：它没有 useEffect/useState，只是个返回 JSX 的函数；
+ *   map 渲染技术栈卡片时 key={tech.name} —— key 帮助 React 在列表 diff 时复用 DOM，别用 index。
+ */
 export default function About() {
   const frontendStack = [
     { name: 'React', version: '18.x', desc: 'UI 框架' },

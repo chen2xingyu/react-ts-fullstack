@@ -12,6 +12,15 @@ import { useCallback, useEffect, useState } from 'react'
  *
  * 面试追问：useState(() => 初始值) 为什么能避免每次 render 都读 localStorage？
  *   lazy initializer 只在首次 render 执行，后续 render 忽略。
+ *
+ * 追问：JSON.stringify 有哪些坑？
+ *   - undefined / 函数 / Symbol 字段会被直接丢弃，读回后这些字段变 undefined；
+ *   - 循环引用会抛错（已被 try/catch 兜住，回退初始值）；
+ *   - Date 会被序列化成字符串，读回不会自动还原成 Date 对象。
+ *   存复杂类型时常需要自己写反序列化（reviver / class 重建）。
+ *
+ * TS→JS：泛型 <T>、as T 断言编译后全部擦除，运行时 localStorage 里只有字符串，
+ *   T 只是给开发者的类型提示，不做任何运行时校验。
  */
 export function useLocalStorage<T>(
   key: string,

@@ -1,3 +1,12 @@
+/**
+ * 🎯 面试考点：RESTful 接口封装与泛型解包
+ * 约定：GET 查列表/详情、POST 新建动作、PUT 全量更新、DELETE 删除；路径用资源名复数
+ * （/trading/orders），动态段用路径参数 `/orders/${id}/cancel`。
+ * 统一写法 `http.get<Stock[]>('/x').then(r => r.data)`：
+ *   http.get<T> 声明业务 data 的类型，.then(r => r.data) 把信封 ApiResponse<T>
+ *   解包成 T —— 调用方拿到的直接是 Stock[]，不感知信封层。
+ * 字段用 snake_case（created_at）是刻意对齐后端 DB 字段，前端不做转换，避免双向映射成本。
+ */
 import { http } from './request'
 import type {
   Stock,

@@ -9,6 +9,14 @@ import { useEffect, useState } from 'react'
  * 面试追问：和 CSS media query 比什么时候用 JS 版？
  *   - 需要根据视口切换组件逻辑（如移动端用抽屉、桌面用侧边栏）时
  *   - CSS 只处理样式，JS 版处理行为
+ *
+ * SSR 首屏不匹配（hydration 风险）：
+ *   服务端 typeof window==='undefined' 固定返回 false；客户端若其实是桌面端（matches=true），
+ *   服务端 markup 与客户端首次渲染不一致 → React hydration 警告。
+ *   稳妥做法：首屏先渲染"安全默认态"，在 useEffect 里再 setMatches 纠正（effect 不参与 SSR 渲染）。
+ *   本文件 useState(getMatches) 在 SSR 下取到 false，就是这个安全默认值。
+ *
+ * 监听清理：change 回调在 cleanup 里 remove；query 变化时旧监听随旧 effect 一起摘除，不泄漏。
  */
 export function useMediaQuery(query: string): boolean {
   const getMatches = (): boolean => {

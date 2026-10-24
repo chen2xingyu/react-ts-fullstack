@@ -14,6 +14,10 @@ import { useRenderCount } from '../perf/useRenderCount'
  * 本组件并排演示：左侧受控每次击键渲染计数 +1，右侧非受控渲染计数恒为 1。
  */
 
+// 🎯 为什么要 forwardRef？—— ref 不是普通 prop，函数组件默认拿不到父组件传下的 ref，
+//   必须 forwardRef 显式转发，父组件才能用 uncontrolledRef.current.value 直接读 DOM 值。
+// defaultValue 而非 value：非受控只在【首次渲染】给 DOM 一个初始值，之后值由 DOM 自己管。
+//   若写成 value={...} 又不写 onChange，React 会警告 “value 无 onChange”——那是受控的错误姿势。
 /** 非受控输入：defaultValue 初始化，值由 DOM 管理，通过 ref 读取 */
 const UncontrolledInput = forwardRef<HTMLInputElement, { placeholder?: string }>(
   function UncontrolledInput({ placeholder }, ref) {
@@ -32,6 +36,10 @@ export default function ControlledVsUncontrolled() {
   const [controlled, setControlled] = useState('')
   const [snapshot, setSnapshot] = useState('')
   const uncontrolledRef = useRef<HTMLInputElement>(null)
+  // 🎯 什么时候【必须】受控？即时校验（密码强度）、按钮 disabled 依赖输入、
+  //   输入联动格式化（信用卡号分组）、下拉/多选需要选中态。
+  //   对比 Vue：v-model 是 :value + @input 的语法糖，天生就是受控写法、框架替你绑好；
+  //   React 坚持单向数据流，value/onChange 全靠显式手写，更直白但更啰嗦。
   // 🎯 渲染计数对照：受控侧随击键增长，非受控侧不变
   const controlledRenderCount = useRenderCount()
   const uncontrolledRenderCount = useRenderCount()

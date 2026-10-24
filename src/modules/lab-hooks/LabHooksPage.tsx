@@ -20,6 +20,10 @@ import {
  * 建议走读顺序：防抖/节流 → Previous → Interval/Timeout → ClickOutside/LockBodyScroll
  * → LocalStorage → MediaQuery → IntersectionObserver → Fetch（难度递增）
  */
+// 🎯 as const：把数组“冻结”成字面量联合类型（h.id/h.name 成为精确字面量而非 string）。
+//   TS→JS：as const 编译后完全擦除，运行时就是普通数组。
+// 这里存的是【已创建好的 React 元素 <DebounceDemo />】（描述一次渲染结果的普通对象），
+//   不是组件本身；后面 {h.node} 直接渲染，无需再 <DebounceDemo />。key={h.id} 是列表 diff 的稳定身份。
 const HOOKS = [
   { id: 'debounce', name: 'useDebounce', node: <DebounceDemo /> },
   { id: 'throttle', name: 'useThrottle', node: <ThrottleDemo /> },

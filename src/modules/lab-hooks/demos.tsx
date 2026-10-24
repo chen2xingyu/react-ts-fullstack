@@ -14,10 +14,30 @@ import {
 } from '@/hacks'
 
 /* ============================================================
+ * 🎯 面试考点：函数组件渲染流程 & Hooks 调用顺序规则 & TS→JS
+ * ------------------------------------------------------------
+ * 【渲染流程】函数组件没有“类实例”，每次 setState / 父组件渲染 / Context 变化，
+ *   React 都会【重新调用整个函数】，从上到下再跑一遍，产出最新 JSX 树做 diff。
+ *   对比 Vue：Vue 有依赖收集 + 组件级 watcher，只重渲染受影响组件；
+ *   React 没有依赖收集，靠开发者用 memo/useMemo/useCallback 手动优化。
+ *
+ * 【为什么 Hooks 不能放条件里】React 用“每次渲染的调用顺序”把 state 存进一个链表：
+ *   第 1 个 useState→slot0，第 2 个→slot1……它不记 Hook 名字，只记顺序。
+ *   一旦 if 提前 return 或把 Hook 写进 if/循环，下一次渲染 Hook 个数变了 → slot 对错位 →
+ *   报 “Rendered more hooks than during the previous render”。
+ *   ✅ 顶层无条件调用；❌ if (x) { useState(0) }。这就是 rules-of-hooks 存在的原因。
+ *
+ * 【TS→JS】本文件 JSX 编译后不是 HTML，而是 jsx("input", {...}) 函数调用
+ *   （React 17+ jsx-runtime，无需手动 import React）。所有 <泛型>、类型标注
+ *   编译后【完全擦除】，运行时不存在，只在 tsc 静态检查期生效。
+ * ============================================================ */
+
+/* ============================================================
  * 每个 Demo 是一个独立的小组件，演示一个 Hook 的真实使用场景
  * 顶部 <Note> 是说明文字的样式容器
  * ============================================================ */
 
+// 纯展示型子组件。children: ReactNode = 允许塞入任意渲染内容（JSX/字符串/null/数组）的联合类型别名
 function DemoCard({ title, desc, children }: { title: string; desc: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -29,6 +49,9 @@ function DemoCard({ title, desc, children }: { title: string; desc: string; chil
 }
 
 /* ---------- 1. useDebounce ---------- */
+// 🎯 useState：声明状态变量 + setter。这是“受控输入”标准写法：value 把 state 作为
+//   输入框唯一数据源，onChange 里 setInput 更新 → 触发重渲染。TS→JS：useState<string>
+//   的 <string> 编译后擦除，运行时即 useState('')。
 export function DebounceDemo() {
   const [input, setInput] = useState('')
   const debounced = useDebounce(input, 600)
@@ -52,6 +75,8 @@ export function DebounceDemo() {
 }
 
 /* ---------- 2. useThrottle ---------- */
+// 🎯 防抖 vs 节流（必问）：防抖 = 停下来 wait 后才执行一次（搜索框）；
+//   节流 = 每 wait 最多执行一次，密集事件也保底输出最后一帧（拖动/滚动）。
 export function ThrottleDemo() {
   const [pos, setPos] = useState(0)
   const throttled = useThrottle(pos, 1000)
@@ -77,6 +102,9 @@ export function ThrottleDemo() {
 }
 
 /* ---------- 3. usePrevious ---------- */
+// 🎯 usePrevious 时序原理：渲染阶段 ref.current 还是上一次的值，
+//   effect 在【DOM commit 之后】才把它更新成新值，所以本次渲染看到的 prev 恰好是上一拍。
+//   对比 Vue：相当于 Vue 的 watch + 旧值快照；setCount((c) => c+1) 是函数式更新。
 export function PreviousDemo() {
   const [count, setCount] = useState(0)
   const prev = usePrevious(count)
@@ -103,7 +131,8 @@ export function PreviousDemo() {
 export function IntervalTimeoutDemo() {
   const [count, setCount] = useState(0)
   const [running, setRunning] = useState(true)
-  // 经典用法：倒计时/轮询。delay 可随时改、可暂停（null）
+  // 🎯 闭包陷阱：定时器回调若直接闭包捕获 count，永远是首次渲染的 0。
+  //   解法：函数式 setCount((c) => c + 1)，或内部用 ref 存最新回调。delay=null = 停止调度。
   useInterval(() => setCount((c) => c + 1), running ? 1000 : null)
 
   const [flash, setFlash] = useState(false)
@@ -134,6 +163,10 @@ export function IntervalTimeoutDemo() {
 }
 
 /* ---------- 5. useClickOutside ---------- */
+// 🎯 useRef<HTMLDivElement>(null)：一个“不触发渲染的盒子”。挂到 <div ref={ref}> 后
+//   React 把真实 DOM 节点赋给 ref.current。与 Vue 的 ref 语义区别：改 ref.current
+//   【不会触发重渲染】——存“变了要渲染 UI”的值用 useState，存“变了不要渲染”的值
+//   （DOM 节点/计时器 id/上一次值）才用 useRef。
 export function ClickOutsideDemo() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -162,6 +195,9 @@ export function ClickOutsideDemo() {
 }
 
 /* ---------- 6. useLockBodyScroll ---------- */
+// 🎯 useEffect 时机 vs Vue watch：effect 在【浏览器绘制完后】异步执行、不阻塞 paint；
+//   依赖数组 [locked] = 仅 locked 变化才重跑；[] = 仅挂载后一次；省略 = 每次渲染都跑。
+//   return 的清理函数在「下次 effect 前」和「卸载时」各跑一次——这里用来还原 body overflow。
 export function LockBodyScrollDemo() {
   const [locked, setLocked] = useState(false)
   useLockBodyScroll(locked)
@@ -179,6 +215,9 @@ export function LockBodyScrollDemo() {
 }
 
 /* ---------- 7. useLocalStorage ---------- */
+// 🎯 自定义 Hook 返回 [value, setValue] 元组，外部可像 useState 一样解构。
+//   🎯 StrictMode 下 effect 会【双调用】(mount→unmount→mount)：所以 effect 必须幂等，
+//   发请求要用 AbortController 取消第一次或 ref 防重，不能无脑发两次。
 export function LocalStorageDemo() {
   const [name, setName] = useLocalStorage<string>('lab.hooks.name', '')
   return (
@@ -200,6 +239,8 @@ export function LocalStorageDemo() {
 }
 
 /* ---------- 8. useMediaQuery ---------- */
+// JS 里的 CSS 媒体查询（window.matchMedia）。纯样式切换仍用 CSS；
+//   需要“按断点条件渲染组件/切换事件监听”时才用 JS 断点。
 export function MediaQueryDemo() {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const isDark = useMediaQuery('(prefers-color-scheme: dark)')
@@ -217,6 +258,8 @@ export function MediaQueryDemo() {
 }
 
 /* ---------- 9. useIntersectionObserver ---------- */
+// 🎯 无限滚动/图片懒加载原理：哨兵元素进入视口比例达 threshold 时触发回调。
+//   返回 { ref, isIntersecting }：调用方把 ref 挂到被观察元素即可。
 export function IntersectionDemo() {
   const { ref, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
     rootMargin: '0px',
@@ -247,7 +290,8 @@ export function IntersectionDemo() {
 /* ---------- 10. useFetch ---------- */
 export function FetchDemo() {
   const [keyword, setKeyword] = useState('')
-  // 真实的 GitHub 用户搜索 API，演示请求状态机 + 竞态
+  // 🎯 请求状态机 idle→loading→success/error；快速切换关键词会产生【竞态】（旧请求后返回覆盖新结果），
+  //   本 Hook 用 AbortController 在新请求发起时 abort 旧请求。encodeURIComponent 编码进 URL 的关键词。
   const { status, data, error, refetch } = useFetch<{ items: Array<{ id: number; login: string }> }>(
     keyword ? `https://api.github.com/search/users?q=${encodeURIComponent(keyword)}&per_page=5` : '',
     { immediate: false }

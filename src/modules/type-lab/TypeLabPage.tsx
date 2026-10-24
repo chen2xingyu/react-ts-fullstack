@@ -16,7 +16,8 @@ import { navigate, toPostId, toUserId, type PostId, type UserId } from './typeCh
 // 从 shared schema 推导出的 PostListItem 类型，保证前端/后端/表格三处一致
 type PostRow = PostListItem
 
-// 演示 branded type 的构造函数
+// 演示 branded type 的构造函数：运行时它们就是普通字符串 'u_12345' / 'p_67890'，
+// 但类型上 UserId 与 PostId 互不相容 —— 把 PostId 传给需要 UserId 的函数会编译报错。
 const demoUserId: UserId = toUserId('u_12345')
 const demoPostId: PostId = toPostId('p_67890')
 
@@ -26,6 +27,8 @@ export default function TypeLabPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // 🎯 useEffect + AbortController：组件卸载时调用 controller.abort() 取消未完成请求，
+    // 避免「卸载后 setState」的 React 警告与内存泄漏；空依赖 [] 表示只在挂载后跑一次。
     const controller = new AbortController()
     setLoading(true)
     fetchPosts({ limit: 10 }, controller.signal)
@@ -73,6 +76,8 @@ export default function TypeLabPage() {
         <h2 style={{ fontSize: 16, marginBottom: 12 }}>🔢 泛型 DataTable（真实 posts 数据）</h2>
         {error && <div style={{ color: 'red', marginBottom: 12 }}>❌ {error}</div>}
         {loading && <div style={{ color: '#6b7280', marginBottom: 12 }}>⏳ 加载中...</div>}
+        {/* 🎯 调用处不写 <DataTable<PostRow>>，TS 从 data={posts}: PostRow[] 反推出 T=PostRow；
+            columns 里的 key 因此被自动约束为 keyof PostRow，写错字段名这里立刻报红。 */}
         <DataTable data={posts} columns={columns} rowKey="id" />
       </section>
 

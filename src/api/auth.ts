@@ -3,6 +3,17 @@ import type { ApiResponse } from './request'
 import type { AuthUser } from '@/store/auth'
 import type { AxiosRequestConfig } from 'axios'
 
+/**
+ * 🎯 面试考点：登录态接口语义 + 「双重断言」为什么需要
+ * 登录/注册成功后后端一次性下发 accessToken（短有效期，放 Authorization 头）+
+ * refreshToken（长有效期，专门用于换新 accessToken）。之后所有业务请求只带
+ * accessToken，过期才走 /auth/refresh。
+ *
+ * 下面 `as unknown as ApiResponse<LoginResponse>`：响应拦截器已把 AxiosResponse
+ * 替换成信封体，但 request.post 的静态返回类型仍是 AxiosResponse，二者结构不重叠，
+ * TS 不允许直接 `as ApiResponse`（报 "neither sufficiently overlaps"），必须先
+ * as unknown 中转一次。TS→JS：as/unknown 断言零运行时代码，只在编译期生效。
+ */
 export interface LoginResponse {
   user: AuthUser
   accessToken: string
@@ -10,6 +21,7 @@ export interface LoginResponse {
   expiresIn: string
 }
 
+// 注册与登录返回结构一致，直接 type 别名复用，避免重复维护两份类型
 export type RegisterResponse = LoginResponse
 
 // 用户登录

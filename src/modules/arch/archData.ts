@@ -5,6 +5,11 @@
  * 面试被问「介绍下你的项目架构」时，直接打开本页按图讲。
  */
 
+// 🎯 TS 考点：联合字面量类型 'front' | 'gateway' | ... 是「有限枚举」。
+//    编译后完全擦除，运行时不存在 NodeTone；但它配合下面的 Record<NodeTone, ...>
+//    形成「穷举校验」——你新增一个 tone（比如 'queue'），TONE_STYLE 少写一个 key，
+//    tsc 立刻报错，逼你同步补样式。这是用 TS 驱动「节点配色一致性」的经典套路，
+//    比随便传 string 再做 if-else 健壮得多。
 export type NodeTone = 'front' | 'gateway' | 'v1' | 'v2' | 'db' | 'infra'
 
 export interface ArchNode {
@@ -26,6 +31,10 @@ export interface ArchEdge {
   label?: string
 }
 
+// 🎯 Record<NodeTone, ...>：要求 key 必须是 NodeTone 的全部六种、且每个值都有
+//    fill/stroke/text 三个字段。任何漏写/拼错都会被编译器当场抓住。
+//    对比 Vue 项目常见写法 `Record<string, ...>`（任意 string key）——
+//    TS 就失去了保护，改名时容易漏一处。
 export const TONE_STYLE: Record<NodeTone, { fill: string; stroke: string; text: string }> = {
   front: { fill: '#eff6ff', stroke: '#3b82f6', text: '#1d4ed8' },
   gateway: { fill: '#f5f3ff', stroke: '#8b5cf6', text: '#6d28d9' },

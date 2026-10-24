@@ -10,6 +10,14 @@ import { useEffect } from 'react'
  *   这里用"保存原始值再还原"的简单方案，教学用；生产建议计数器。
  *
  * 另外：移动端还需处理 touchmove 事件的 preventDefault，否则仍能滚动。
+ *
+ * overflow 锁原理：
+ *   body 设 overflow:hidden 后，浏览器不再为 body 生成纵向滚动条、超出内容被裁剪，
+ *   于是底层页面无法随滚轮/触摸滚动；而弹层自身若 fixed/absolute 定位在独立滚动容器内，仍可滚。
+ *
+ * 清理时机：
+ *   依赖 [locked]，locked 变 false 或组件卸载时 effect cleanup 执行，
+ *   把 overflow 还原成打开前保存的 originalOverflow——状态可回退、不留脏。
  */
 export function useLockBodyScroll(locked = true) {
   useEffect(() => {

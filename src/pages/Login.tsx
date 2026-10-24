@@ -9,6 +9,22 @@ interface LocationState {
   from?: { pathname: string }
 }
 
+/**
+ * 🎯 面试考点：受控表单（Controlled Component）与提交状态机
+ *
+ * 受控表单：每个 input 都 value={state} + onChange={setState}，输入框的内容完全由 React state 驱动。
+ *   反例是“非受控”——用 defaultValue + ref 读 DOM。对比 Vue：v-model 天然双向绑定；
+ *   React 没有 v-model，要自己写 value+onChange（受控），这是高频送分/送命题。
+ *   TS→JS：useState('') 里的 '' 推断为 string；<T> 泛型编译后擦除，运行时就是普通 useState。
+ *
+ * 提交状态机：loading（idle→submitting→success/error）三个布尔/字符串拼出 UI：
+ *   - setLoading(true) 期间按钮 disabled，防重复提交（关键！否则狂点会发 N 次登录请求）。
+ *   - error 独立成串，失败时渲染红条提示；成功则不渲染。
+ *   易错点：忘记 finally 里 setLoading(false)，或失败分支没 setError，按钮就永远转圈。
+ *
+ * 登录后回跳：from 取自 useLocation().state.from（由 ProtectedRoute 跳转时塞进来的），
+ *   navigate(from, { replace:true }) —— replace 避免登录页残留在历史栈里。
+ */
 export default function Login() {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -22,8 +38,13 @@ export default function Login() {
   const location = useLocation()
   const from = (location.state as LocationState)?.from?.pathname || '/'
 
+  // 🎯 追问：location.state 为什么要 as LocationState 断言？
+  // useLocation() 的 state 类型是 unknown/泛型默认，编译器不知道里面有 from；
+  // 运行时若 state 为 undefined（直接访问 /login），可选链 ?. 短路 → 兜底 '/'，不会崩。
+  // TS→JS：as 与整个 LocationState 接口编译后全部擦除，运行时只跑普通对象访问。
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault() // 阻止表单默认“整页刷新提交”——这是 SPA 路由时代必须的一步
     setError('')
     setLoading(true)
 

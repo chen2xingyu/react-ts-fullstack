@@ -84,9 +84,17 @@ describe('评论后通知队列', () => {
     // 因为任务可能在监听器挂载前就已完成（先查状态再订阅事件）
     await job!.waitUntilFinished(notificationEvents, 5000)
 
-    const state = await job!.getState()
+    // 🎯 面试考点（BullMQ 集成测试易错点）：waitUntilFinished 返回后，原 job
+    // 实例的 returnvalue 缓存可能未回填 —— getJob 时任务尚未完成，实例的
+    // _returnvalue 为空，完成后不会自动刷新。而 getState() 是独立查 Redis 的
+    // zset，故能读到 'completed' 但 returnvalue 仍是 null（两者来源不同）。
+    // 正确做法：完成后重新 getJob 拉取最新数据再断言（本文件第二个测试已示范）。
+    const fresh = await notificationQueue.getJob(job!.id!)
+    expect(fresh).not.toBeNull()
+
+    const state = await fresh!.getState()
     expect(state).toBe('completed')
-    expect(job!.returnvalue.sent).toBe(true)
+    expect(fresh!.returnvalue.sent).toBe(true)
   })
 
   it('内容含 FAIL 时前两次失败，第三次重试成功', async () => {

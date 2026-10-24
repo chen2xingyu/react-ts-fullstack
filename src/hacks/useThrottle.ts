@@ -15,6 +15,19 @@ import { useEffect, useRef, useState } from 'react'
  * 面试追问：leading vs trailing 怎么选？
  *   搜索框建议防抖（等用户停手）；
  *   滚动/resize 建议节流（保证窗口内一定有响应）。
+ *
+ * 两种经典实现差异（追问常考）：
+ *   ① 时间戳版（本文件）：记录 lastInvoke，到点立即 leading 执行，零定时器；
+ *      但窗口内的最后一次值要用额外的 trailing 定时器补上。
+ *   ② 定时器版：用 timer 锁住窗口，到点执行后再开下一个，结构简单、天然偏 trailing，
+ *      但每次都要挂一个定时器。
+ *   取舍：纯 leading 用时间戳最省；需要 trailing 精确补末帧时常两者结合（如本文件）。
+ *
+ * 防抖 vs 节流对照（高频背诵）：
+ *   | 维度 | 防抖 debounce       | 节流 throttle        |
+ *   | 触发 | 停止后只执行一次    | 每个窗口至多执行一次 |
+ *   | 响应 | 慢但更省            | 有节奏、更及时       |
+ *   | 场景 | 搜索/校验/resize    | 滚动/拖拽/高频按钮   |
  */
 export function useThrottle<T>(value: T, delay = 300): T {
   const [throttled, setThrottled] = useState<T>(value)

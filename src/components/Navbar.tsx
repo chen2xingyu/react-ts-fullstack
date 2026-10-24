@@ -1,6 +1,21 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 
+/**
+ * 🎯 面试考点：NavLink 与“激活态”样式
+ * - <NavLink> 比 <Link> 多了一个能力：知道自己是否匹配当前 URL。传 className 时可以给一个
+ *   函数 ({ isActive }) => string，React Router 会在当前路由匹配/失配时重新调用，自动高亮。
+ * - 对照 Vue：<RouterLink> 默认加 .router-link-active / .router-link-exact-active 两个类；
+ *   React 没有内置类，要自己用 isActive 函数映射样式（更显式、无魔法类名）。
+ * - 易错点（active 匹配是“前缀匹配”）：to="/" 会让【所有】页面都命中 active；
+ *   这里首页用单独的 Logo NavLink、且链接都是精确子路径，才没暴露问题。
+ *   真要精确匹配写 className={({isActive,isPending})=>...} 或加 end 属性。
+ * - 代码分割挂载点：这些 NavLink 只是声明 to="/lab/hooks"，真正的页面 chunk 在 router/index.tsx
+ *   用 React.lazy 动态 import —— 点击时才下载对应 chunk（首屏不带这一大坨 lab 页面代码）。
+ *
+ * Zustand 选择器用法：useAuthStore((s) => s.isAuthenticated) —— 只订阅我关心的那一小片 state，
+ * 该片变化才重渲染，避免整 store 一变就重渲染整个导航栏。
+ */
 export default function Navbar() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
@@ -14,6 +29,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout()
+    // replace:true —— 退出后用历史记录替换当前项，用户点“浏览器后退”不会又回到需要登录的页
+    // （那会被守卫再弹回登录页，形成尴尬循环）。这是登出/登录跳转的标准做法。
     navigate('/', { replace: true })
   }
 

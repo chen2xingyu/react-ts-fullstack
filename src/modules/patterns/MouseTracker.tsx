@@ -36,6 +36,9 @@ export default function MouseTracker({ render, height = 120 }: MouseTrackerProps
         })
       }}
     >
+      {/* render prop 调用点：把内部状态 pos 交给调用方的函数决定渲染什么。
+          等价写法是 children as function：{children(pos)}——本质相同。
+          每次 mousemove 都 setPos({新对象}) → 整个组件重渲染（坐标实时更新，可接受）。 */}
       {render(pos)}
     </div>
   )

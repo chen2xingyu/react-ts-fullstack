@@ -8,6 +8,13 @@ export interface ApiResponse<T = unknown> {
   data: T
 }
 
+/**
+ * 🎯 面试考点：axios.create 实例化与默认配置
+ * axios.create() 创建独立的 Axios 实例（不污染全局默认 axios），便于一个项目
+ * 对接多个后端/baseURL。baseURL 取 Vite 环境变量 import.meta.env（构建期静态替换），
+ * timeout=10s 是全局兜底；单个请求可在 config.timeout 覆盖（见 python.ts 的 60s）。
+ * TS→JS：import.meta.env 打包后被替换成真实字符串字面量，所有类型信息编译后擦除。
+ */
 const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10_000,
@@ -22,13 +29,27 @@ type RetryableRequestConfig = AxiosRequestConfig & {
   _isRefreshRequest?: boolean
 }
 
-// 是否正在刷新 Token（避免并发刷新）
+// 🎯 面试考点：并发刷新风暴（refresh token stampede）与等待队列
+// 错误写法：每个 401 都各自 await refreshToken —— 页面同时挂着 10 个请求时，
+//   会瞬间发出 10 次刷新请求；若后端 refresh_token 有「一次有效/轮换」语义，
+//   后到的刷新全部 401，连锁登出。
+// 正确写法（本文件）：isRefreshing 当互斥锁，第一个 401 负责刷新，其余请求
+//   push 进 pendingRequests 排队；成功后用同一个 newToken 批量 resolve 队列、
+//   重放原请求；失败则统一 reject 队列并跳登录。模块级变量天然是单例。
 let isRefreshing = false
 let pendingRequests: Array<{
   resolve: (token: string) => void
   reject: (error: unknown) => void
 }> = []
 
+/**
+ * 🎯 面试考点：axios 拦截器机制与执行顺序
+ * use(onFulfilled, onRejected) 注册拦截器。请求拦截器在请求发出【前】执行，
+ * 多个请求拦截器按「后注册先执行」（栈）；响应拦截器在响应【后】按「先注册先执行」（队列）。
+ * 这里能直接改 config.headers，是因为拦截器本身就在 axios 的 Promise 调用链上，
+ * return 的 config 会继续向下传给 adapter 真正发请求 —— 所以 Token 可集中注入，
+ * 不必每个业务函数手写。onRejected 必须 return Promise.reject(error)，否则错误被吞。
+ */
 request.interceptors.request.use(
   (config) => {
     const token = getAccessToken()
@@ -126,6 +147,15 @@ request.interceptors.response.use(
   },
 )
 
+/**
+ * 🎯 面试考点：泛型解包 —— 把 AxiosResponse 收拢成业务信封 ApiResponse
+ * axios 原生返回 Promise<AxiosResponse<T>>，业务体在 .data 上；而响应拦截器又把
+ * 整个 response 替换成了 ApiResponse 信封（见上方 `return res as any`）。这里用
+ * 泛型 T 声明「业务 data 的形状」，外层 `as Promise<ApiResponse<T>>` 把边界层
+ * 的类型断言集中在这一处，业务侧 `http.get<User>('/x')` 即拿到类型安全的信封。
+ * TS→JS：<T> 泛型编译后完全擦除，运行时没有任何 T，纯编译期提示；
+ *   as 断言同样零运行时代码。易错点：忘了 .then(r => r.data) 会把整个信封当业务数据用。
+ */
 export const http = {
   get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
     return request.get(url, config) as Promise<ApiResponse<T>>

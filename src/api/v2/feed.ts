@@ -19,6 +19,15 @@ import type { CursorPage } from '@shared/contracts/common'
  * 主动取消旧请求，axios 会抛出 CanceledError，被 catch 静默处理。
  */
 
+/**
+ * 🎯 面试考点：静态类型 vs 运行时校验（zod）+ 泛型分页
+ * PostListItem 这类类型来自 shared schema 的 z.infer：它只在编译期保证「我们怎么用」，
+ * 但网络边界处后端真返回什么 TS 管不到。所以拿到响应后再用 postListItemSchema.parse()
+ * 逐条校验 —— 类型擦除后运行时，脏数据会在 parse 处直接抛错而不是静默渲染出 undefined。
+ * CursorPage<PostListItem> 是泛型分页壳：list 是当前页数据、nextCursor 游标、hasMore
+ * 标记是否还有下一页（游标分页 vs offset 分页是常被追问的点）。
+ * signal 由调用方（useEffect/事件处理）生成 AbortController 传入，透传给 axios 即可取消。
+ */
 export async function fetchPosts(
   params: PostListQuery,
   signal?: AbortSignal,
@@ -70,4 +79,6 @@ export async function createComment(
   return commentSchema.parse(res.data)
 }
 
+// 类型再导出：调用方从本模块统一拿 PostListQuery，不必穿透到 @shared/contracts；
+//   TS→JS：type 导出编译后完全消失，不产生任何运行时 import。
 export type { PostListQuery }

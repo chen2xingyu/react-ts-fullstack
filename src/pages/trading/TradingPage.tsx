@@ -16,6 +16,12 @@ import type { Stock, Position, Kline } from '@/types/trading'
  * 阶段 1：资金条 + 股票选择器 + 持仓（真实接口）
  * 阶段 2：K线图 + 五档盘口 + 实时行情（WebSocket）
  * 后续：下单(3) / 委托(3) / 成交(4) 逐步填充
+ *
+ * 🎯 面试考点：多子组件的数据流组织（页面编排）
+ * 本页是「取数层」：所有 useQuery 在页面统一拉数，再以 props 下传展示型子组件
+ * (AccountBar/KLineChart/DepthBook…)，子组件不各自请求、保持纯展示。
+ * 全局缓存身份 queryKey 统一带 'trading' 前缀，便于一处 invalidate 连带失效。
+ * 数据流：HTTP 拉历史/账户 + WebSocket 推实时(tick/kline/depth)，两路在页面汇合。
  */
 export default function TradingPage() {
   const [symbol, setSymbol] = useState<string>('')
@@ -51,6 +57,14 @@ export default function TradingPage() {
   }
 
   // K线历史（首次拉取，后续由 WS 实时更新）
+  /**
+   * 🎯 面试考点：enabled 门控 + 非空断言 + queryKey 含动态段
+   * enabled: !!currentSymbol —— 没有选中标的时不发请求（避免拿空 symbol 打接口）。
+   * queryKey 把 currentSymbol 作为第三段：切标的即生成新缓存槽，互不污染，
+   * 再次切回还能命中缓存。currentSymbol! 是 TS 非空断言：TS 不知道 enabled 已保证
+   * 它非空，这里用 ! 告诉编译器「运行时一定有值」——边界层豁免，零运行时代码；
+   * 更稳的写法是 queryFn 里判空 return []，避免后端真收到 undefined。
+   */
   const { data: klineHistory } = useQuery<Kline[]>({
     queryKey: ['trading', 'klines', currentSymbol],
     queryFn: () => getKlines(currentSymbol!, { period: '1m', limit: 500 }),
@@ -58,6 +72,14 @@ export default function TradingPage() {
   })
 
   // 实时行情
+  /**
+   * 🎯 面试考点：WebSocket 数据源与「快速切标的」竞态
+   * useMarketSocket(currentSymbol) 内部应在 symbol 变化时【重连/退订旧频道、订阅新频道】，
+   * 并在 cleanup 里关闭旧连接——否则旧标的的推送会继续流入、覆盖新标的的 tick。
+   * 这是 WS 版「竞态」：与 HTTP 里「快速切换导致旧响应后到覆盖新数据」同源，
+   * 解法都是「按 key 取消/退订过期请求」。connected 暴露连接状态用于 UI 红点。
+   * handleNotify 收到服务端业务事件(成交通知)后驱动缓存失效（见下）。
+   */
   const { connected, tick, kline, depth } = useMarketSocket(currentSymbol, handleNotify)
 
   // 阶段 5：五档点价 → 写入 pickedPrice（nonce 自增，连点同价也能触发 effect）
@@ -66,6 +88,14 @@ export default function TradingPage() {
   }
 
   // 阶段 5：收到撤单/成交通知 → 即时失效相关查询（无需等 3s 轮询）
+  /**
+   * 🎯 面试考点：服务端推送 → 客户端缓存失效(数据同步)
+   * WS 推送业务事件后，不必等前端轮询自然刷新，主动 invalidateQueries 让 react-query
+   * 立刻重拉受影响的查询。粒度按事件精确圈定：撤单只影响 委托/资金/持仓；
+   * 成交额外再失效 成交列表。这是「事件驱动刷新」替代「固定间隔轮询」的标准做法，
+   * 既及时又省请求。追问：invalidate 默认会标记 stale 并在【挂载时/下次观察时】重拉，
+   * 若要立刻拉可加 refetchType:'all'。
+   */
   function handleNotify(n: UserNotify) {
     if (n.type === 'order_status') {
       // 撤单状态变更：委托 + 资金 + 持仓都可能变
@@ -129,6 +159,13 @@ export default function TradingPage() {
 
       {/* 下单 + 委托（阶段 3） */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/*
+         * 🎯 面试考点：用 key 重置子组件状态（声明式重置）
+         * key={currentSymbol}：切标的时 React 认为 OrderForm 是「新组件」，
+         * 直接卸载旧实例、挂载新实例，自动清空表单内的数量/价格/ pickedPrice 状态，
+         * 无需在 OrderForm 内部写一堆 useEffect 监听 symbol 来手动复位。
+         * 口诀：「要重置整棵子树的内部状态，换 key 比重写 effect 干净」。
+         */}
         <OrderForm
           key={currentSymbol}
           symbol={currentSymbol}
@@ -155,15 +192,24 @@ export default function TradingPage() {
   )
 }
 
-/** 当前股票元数据 + 实时价条 */
+/**
+ * 当前股票元数据 + 实时价条
+ * 🎯 面试考点：涨跌幅/涨跌停计算与边界保护
+ * changePct 先判 prevClose > 0 再除——避免昨收为 0/缺失时除零得 Infinity/NaN 污染界面。
+ * 涨停=昨收×(1+涨幅)，跌停=×(1−涨幅)，是 A 股主板 ±10% 的展示口径。
+ * 注意：change=price-prevClose 这类差值计算只用于【展示】；真实盈亏/可用资金
+ * 由后端按「分/decimal」结算，前端浮点差值只决定红绿颜色与文案。
+ */
 function StockInfo({ stock, tick }: { stock: Stock; tick: Tick | null }) {
   const limitPct = (Number(stock.price_limit_pct) * 100).toFixed(1)
   const prevClose = Number(stock.prev_close)
+  // tick 未到(tick=null)时回退昨收，保证首屏有数字不空白
   const price = tick ? tick.price : prevClose
   const change = price - prevClose
   const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0
   const upLimit = (prevClose * (1 + Number(stock.price_limit_pct))).toFixed(2)
   const downLimit = (prevClose * (1 - Number(stock.price_limit_pct))).toFixed(2)
+  // 🎯 国内配色：涨红跌绿平灰，与 DepthBook/TradeList 全局一致；三元嵌套按 正/负/平 三分支
   const priceColor =
     change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-gray-900'
 
@@ -233,6 +279,8 @@ function PositionList({ positions }: { positions?: Position[] }) {
           </tr>
         </thead>
         <tbody>
+          {/* 🎯 复合 key：同一用户持有的标的唯一，user_id+symbol 拼合作 key，
+              比 index 稳，切账号/多 tab 场景下也不串 */}
           {positions?.map((p) => (
             <tr key={`${p.user_id}-${p.symbol}`} className="border-b border-gray-100">
               <td className="py-2 pr-4 font-mono">{p.symbol}</td>

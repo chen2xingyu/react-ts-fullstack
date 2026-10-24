@@ -23,6 +23,11 @@ export default function FeedPage() {
   const [keyword, setKeyword] = useState('')
   const debouncedKeyword = useDebounce(keyword, 400)
 
+  // 🎯 面试考点：列表页的"三态 + 游标"数据模型
+  // list=数据；nextCursor=下一页游标；hasMore=后端说"还有没有"；
+  // loading=加载中态；error=错误态。渲染层据此分流：
+  //   空列表&!loading → 空态；loading → 骨架/转圈；error → 错误条；否则渲染列表。
+  // 这就是后端/前端常考的"加载/空/错误"三态设计。
   const [list, setList] = useState<PostListItem[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
@@ -45,10 +50,17 @@ export default function FeedPage() {
         if (cursor) params.cursor = cursor
         if (kw) params.keyword = kw
         const page: CursorPage<PostListItem> = await fetchPosts(params, controller.signal)
+        // 翻页是"追加"不是"替换"：函数式更新 [...prev, ...page.list]；
+        // 关键词切换时（见下方 effect）才先 setList([]) 再拉首页，二者职责分开
         setList((prev) => [...prev, ...page.list])
         setNextCursor(page.nextCursor)
+        // 🎯 cursor 分页 vs offset 分页（追问）：cursor 是上一页最后一条的
+        // 位置标记，翻页不跳号、列表中途插入数据也不会漏/重；offset 分页在
+        // 实时榜单类场景会因数据漂移导致重复或遗漏。
         setHasMore(page.hasMore)
       } catch (e) {
+        // 🎯 主动 abort 抛出的 CanceledError 必须静默吞掉：它是"我们自己取消的"，
+        // 不是真错误，否则切换关键词时屏幕会闪一下红字。
         // axios CanceledError 是主动取消，不算错误
         if ((e as { name?: string })?.name === 'CanceledError') return
         setError((e as Error).message)
@@ -59,7 +71,10 @@ export default function FeedPage() {
     [],
   )
 
-  // 关键词变化 → 重置列表 + 重新搜索
+  // 🎯 关键词（防抖后）变化 → 重置整个分页状态再拉首页：
+  // list 清空、游标归零、hasMore 复位、错误清空，与"翻页追加"严格分离，
+  // 避免新搜索结果拼在旧结果后面。依赖用 debouncedKeyword 而非 keyword，
+  // 所以这串重置 + 请求最多每 400ms 才发生一次。
   useEffect(() => {
     setList([])
     setNextCursor(null)
@@ -131,7 +146,13 @@ export default function FeedPage() {
   )
 }
 
-/** 虚拟列表演示：1000 条模拟数据，DOM 节点数始终 ≈ 可视区 + 缓冲 */
+/**
+ * 🎯 面试考点：为什么真实 Feed 用普通 map，这里却单独演示虚拟列表？
+ * 真实列表是"无限滚动分页"：每页 20 条、攒到几百条 DOM 尚可接受；
+ * 虚拟列表解决的是"单批就是上万条、且不打算分页"的场景。
+ * 这里用 1000 条静态数据演示：无论怎么滚，渲染节点恒为可视区+缓冲，
+ * 用来直观对比"一次性全渲染"的开销。
+ */
 function VirtualListDemo() {
   const items = Array.from({ length: 1000 }, (_, i) => ({
     id: i,

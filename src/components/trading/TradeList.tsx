@@ -3,6 +3,14 @@ import { getTrades } from '@/api/trading'
 import { ORDER_SIDE_LABELS } from '@/types/trading'
 import type { Trade } from '@/types/trading'
 
+/**
+ * 🎯 面试考点：ISO 时间字符串的轻量格式化
+ * trade_time 是 ISO8601("2026-10-24T13:45:08")。这里不引 dayjs/date-fns，
+ * 直接 replace('T',' ') + slice(5,19) 裁掉年份与毫秒——展示列对包体积敏感时，
+ * 「字符串裁剪」比 new Date() + 手动拼还快且无时区坑。
+ * 易错：new Date(iso).toLocaleString() 会按【用户本地时区】转，服务器 UTC 时间会偏 8 小时；
+ *  slice 法原样展示服务器时间字符串，时区表现一致。真要做时区换算才上 dayjs。
+ */
 function fmtTime(t: string) {
   if (!t) return ''
   return t.replace('T', ' ').slice(5, 19) // MM-DD HH:mm:ss
@@ -12,9 +20,19 @@ function fmtTime(t: string) {
  * 成交列表
  * - 3s 自动刷新：撮合引擎（阶段4）成交回报结算后联动
  * - 展示当前用户作为买方/卖方的全部成交
+ *
+ * 🎯 面试考点：轮询(refetchInterval) vs WebSocket 的取舍
+ * 这里用 react-query 的 refetchInterval:3000 做「准实时」拉取，而不是像盘口那样走 WS：
+ *   成交列表对秒级延迟不敏感、数据量小、要翻页/累计，轮询实现简单且自带缓存/去重；
+ *   盘口/tick 对毫秒级敏感、推送频繁，才用 WS。
+ * 进阶：页面切到后台时 refetchInterval 默认仍跑；可加 refetchIntervalInBackground:false
+ * 或用 notifyOnChangeProps 省请求。父页面收到 WS 成交通知时会 invalidateQueries
+ * （见 TradingPage.handleNotify），把 3s 轮询「即时提速」，二者互补。
  */
 export default function TradeList() {
   const { data: trades, isLoading } = useQuery<Trade[]>({
+    // queryKey 是 react-query 的缓存身份：['trading','trades'] 全局唯一，
+    // invalidateQueries(['trading']) 前缀匹配即可连带失效
     queryKey: ['trading', 'trades'],
     queryFn: () => getTrades(),
     refetchInterval: 3000,
@@ -40,6 +58,15 @@ export default function TradeList() {
           </tr>
         </thead>
         <tbody>
+          {/*
+           * 🎯 面试考点：稳定 key 与长列表虚拟化
+           * key={t.id} 用数据库主键——成交记录只增不改、id 全局唯一，是最理想的 key。
+           * 列表更新策略：3s 轮询返回新数组，react-query 数据引用变化触发重渲；
+           * React 按 key 复用未变的 <tr>，只插入/更新变化行，不整表重建。
+           * 虚拟化提示：当前量小直接全渲即可；若成交记录上千行滚动，应引入
+           * 虚拟滚动(react-window / @tanstack/react-virtual)只渲染可视区行，
+           * 否则上千 <tr> 的 DOM 节点会让滚动掉帧。
+           */}
           {trades?.map((t) => {
             const side = Number(t.side)
             const isBuy = side === 1

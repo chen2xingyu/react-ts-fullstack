@@ -22,6 +22,8 @@ const ALL_ITEMS = Array.from({ length: 5000 }, (_, i) => ({
 
 function NaiveFilter() {
   const [query, setQuery] = useState('')
+  // 🎯 useMemo：缓存“昂贵计算”结果，依赖 [query] 不变就复用上一次的 filtered。
+  //   真有用的场景：filter/map 大数组、重计算；渲染本身不耗时别滥用（缓存也有成本）。
   const filtered = useMemo(
     () => (query ? ALL_ITEMS.filter((item) => item.text.toLowerCase().includes(query.toLowerCase())) : ALL_ITEMS),
     [query],
@@ -55,6 +57,9 @@ function NaiveFilter() {
 }
 
 function TransitionFilter() {
+  // 🎯 核心技巧：拆两个 state。query = 紧急更新（输入框立即响应）；
+  //   pendingQuery = 过渡更新（被 startTransition 标记为低优先级、可被打断/延后）。
+  //   React 优先响输入框、再补列表 → 输入流畅。isPending 可展示 loading 态。
   const [query, setQuery] = useState('')
   const [pendingQuery, setPendingQuery] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -75,6 +80,8 @@ function TransitionFilter() {
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
+            // startTransition 不是 async/await：它不“等待”任何东西，只把这次 setState
+            //   标记为可中断的低优先级过渡。区别于 Suspense（数据加载/代码分割的等待态）。
             startTransition(() => setPendingQuery(e.target.value))
           }}
           placeholder="输入搜索词…"

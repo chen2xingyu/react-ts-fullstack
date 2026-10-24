@@ -28,6 +28,9 @@ export default function TaskForm({ initial, onSubmit, onCancel }: TaskFormProps)
     reset,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormValues>({
+    // 🎯 zodResolver 把 zod schema 接成 RHF 的校验器：提交时 RHF 跑 schema，
+    // 错误填进 formState.errors；TaskFormValues 又由 z.infer 从同一份 schema
+    // 推出——"校验规则"与"TS 类型"同源，改 schema 两处一起变。
     resolver: zodResolver(taskSchema),
     defaultValues: {
       title: initial?.title ?? '',
@@ -37,7 +40,9 @@ export default function TaskForm({ initial, onSubmit, onCancel }: TaskFormProps)
     },
   })
 
-  // 切换编辑对象时重置表单（如先编辑 A 再编辑 B）
+  // 🎯 切换编辑对象时手动 reset：RHF 是非受控的，initial 变了它不会自己更新
+  // 输入框，必须显式 reset() 把新值灌进去（典型追问：为什么不直接用 value 受控？
+  // 那正是受控表单——每次 onChange 都 setState，整页重渲染）。
   useEffect(() => {
     reset({
       title: initial?.title ?? '',
@@ -48,6 +53,9 @@ export default function TaskForm({ initial, onSubmit, onCancel }: TaskFormProps)
   }, [initial, reset])
 
   return (
+    // handleSubmit 先跑 zod 校验：通过才调 onSubmit(values)；
+    // onSubmit 由父组件传入，内部再 dispatch 到 reducer——
+    // 表单层不直接碰全局状态，只负责"收集值 + 校验 + 抛出"，职责干净。
     <form
       onSubmit={handleSubmit(onSubmit)}
       style={{

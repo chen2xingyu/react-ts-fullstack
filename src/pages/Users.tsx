@@ -2,6 +2,24 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi, User } from '@/api/user'
 
+/**
+ * 🎯 面试考点：数据加载三态（loading / error / data）+ React Query 替代手写 useEffect 请求
+ *
+ * 经典手写做法：useState(loading/error/data) + useEffect(() => { 拉数据; return 清理 }, [])。
+ * 面试常追问这套的坑：竞态（快速切换筛选时旧请求后返回覆盖新结果）、卸载后 setState 警告。
+ * React Query 的 useQuery 把这些全封装掉：
+ *   - queryKey: ['users'] —— 缓存的“身份证”，同 key 自动共享/去重/失效；
+ *     依赖数据变化时写 ['users', filters]，key 变即视为新缓存。
+ *   - queryFn —— 真正发请求的异步函数；返回值就是 data。
+ *   - 返回 isLoading / error / data 三态，正好对应本组件三个提前 return。
+ * 渲染顺序陷阱：必须先处理 isLoading、error，再渲染用到 data 的列表 —— 否则 data 为 undefined
+ * 就 .map 直接崩。这就是“条件渲染先兜底、后正文”的标准写法。
+ *
+ * useMutation（写操作）与 useQuery（读）分工：
+ *   删除/新增/更新用 useMutation；onSuccess 里 invalidateQueries({queryKey:['users']})
+ *   = 把这条缓存标记为过期，触发 useQuery 自动重新拉取最新列表（实现“改完即刷新”）。
+ *   易错点：改完数据忘了 invalidate，界面就停在旧数据（新人最常踩）。
+ */
 export default function Users() {
   const queryClient = useQueryClient()
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -11,10 +29,13 @@ export default function Users() {
     queryKey: ['users'],
     queryFn: userApi.getUsers,
   })
+  // TS→JS：useQuery<User[]> 里的 <User[]> 是泛型参数，编译后擦除；
+  //   data 编译期是 User[] | undefined，运行时只是普通 any 缓存对象。
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => userApi.deleteUser(id),
     onSuccess: () => {
+      // 使 users 缓存过期 → 列表自动重拉，删掉的行立即消失
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
   })

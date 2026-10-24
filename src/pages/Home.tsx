@@ -1,5 +1,12 @@
 import { useCounterStore } from '@/store'
 
+/**
+ * 🎯 面试考点：Zustand 最小状态管理（与 Vuex/Pinia 对比）
+ * useCounterStore() 直接“钩到”全局 store，解构出 count 与三个 action，无需 Provider 包裹
+ * （Zustand 核心就是一个模块级 create() 出来的独立 store）。对比 Pinia：同样是 store 即组件外可读写，
+ * 区别是 Zustand 用 hook 订阅、Pinia 用 setup/options；这里解构会订阅整个 store，
+ * 生产级写法应像 Navbar 那样 useStore(s=>s.count) 精确订阅，减少无关重渲染。
+ */
 export default function Home() {
   const { count, increment, decrement, reset } = useCounterStore()
 

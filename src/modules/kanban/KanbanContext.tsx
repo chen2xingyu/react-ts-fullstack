@@ -23,6 +23,10 @@ interface KanbanContextValue {
   dispatch: React.Dispatch<TasksAction>
 }
 
+// 🎯 面试考点：为什么 createContext 的默认值给 null 而不是一个假对象？
+// 给假默认值会让"漏包 Provider"的组件静默用到错误数据、极难排查；
+// 给 null + useKanban 里显式 throw，能把误用变成一个立刻暴露的报错。
+// （TS 层面用 | null 强制消费方处理空值。）
 const KanbanContext = createContext<KanbanContextValue | null>(null)
 
 const STORAGE_KEY = 'lab_kanban_v1'
@@ -42,6 +46,9 @@ export function KanbanProvider({ children }: { children: React.ReactNode }) {
   // useLocalStorage 保存 reducer state，实现持久化；初始值取 seed
   const [saved, setSaved] = useLocalStorage<Task[]>(STORAGE_KEY, DEFAULT_TASKS)
 
+  // 🎯 useReducer(reducer, initArg, initFn)：第三个参数是惰性初始化函数，
+  // 用它做 hydrate——把 localStorage 读回的 saved 校验后作为初始 state；
+  // dispatch 引用在组件整个生命周期内稳定（React 保证），可安全往下传/放依赖。
   const [tasks, dispatch] = useReducer(tasksReducer, saved, (initial) => {
     // hydrate 初始化：优先 localStorage，防止 SSR 或迁移版本时出错
     if (Array.isArray(initial) && initial.length) return initial
@@ -53,11 +60,21 @@ export function KanbanProvider({ children }: { children: React.ReactNode }) {
     setSaved(tasks)
   }, [tasks, setSaved])
 
+  // 🎯 面试考点：value 内联对象 = 每次渲染都新建引用 → 所有 useKanban() 消费组件
+  // 全部重渲染（Context 不做浅层比较，引用一变就通知所有消费者）。
+  // 优化手段（按代价从低到高）：
+  //   1. useMemo 缓存 value={useMemo(()=>({tasks,dispatch}),[tasks])}，
+  //      tasks 没变时引用稳定，dispatch 本就由 useReducer 保证引用稳定；
+  //   2. 拆分 Context：tasks 一个、dispatch 一个（dispatch 永不变化，
+  //      只消费 dispatch 的组件因此永不因 tasks 变化而重渲染）；
+  //   3. 状态再细分。看板是低频交互，此处内联写法可接受，面试要能讲出优化。
   return <KanbanContext.Provider value={{ tasks, dispatch }}>{children}</KanbanContext.Provider>
 }
 
 export function useKanban() {
   const ctx = useContext(KanbanContext)
+  // 🎯 自定义 Hook + 守卫：把"必须在 Provider 内使用"的约束收敛成一个报错，
+  // 消费方只调 useKanban()，不直接接触 createContext 返回的对象
   if (!ctx) throw new Error('useKanban must be used inside <KanbanProvider>')
   return ctx
 }

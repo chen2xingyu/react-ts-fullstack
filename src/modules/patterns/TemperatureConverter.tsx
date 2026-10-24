@@ -44,9 +44,14 @@ function TemperatureInput({
 }
 
 export default function TemperatureConverter() {
+  // 🎯 对比 Vue：兄弟同步在 Vue 里常靠 provide/inject 或全局 store；
+  //   React 没有依赖收集，兄弟通信的“标准答案”就是状态提升到共同父级，props 下传 + 回调上报。
   // 状态提升到公共父组件：只存「最后编辑的一方」，另一方推导
   const [state, setState] = useState<{ value: string; scale: 'c' | 'f' }>({ value: '', scale: 'c' })
 
+  // 🎯 派生值在【渲染期间直接算】、不存进 state：celsius/fahrenheit 由 state 推导，
+  //   永远不会与 state 不一致（单一数据源落地）。反例：同时存两份 state，改一个忘改另一个
+  //   就会出现两个输入框对不上——这就是“派生状态”面试题的标准答案。
   const celsius = state.scale === 'f' ? tryConvert(state.value, toCelsius) : state.value
   const fahrenheit = state.scale === 'c' ? tryConvert(state.value, toFahrenheit) : state.value
 

@@ -42,6 +42,9 @@ function Column({ status, children }: { status: TaskStatus; children: React.Reac
   const countRef = useRef(0)
 
   const list = tasks.filter((t) => t.status === status)
+  // 🎯 这里用 ref 缓存派生值而不是 state：列数是 tasks 的纯派生，
+  // render 期间直接同步 .current 给 JSX 用即可，不触发额外渲染；
+  // 若误用 useState 存 count，还得开 effect 同步，反而引入额外渲染。
   countRef.current = list.length
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -109,6 +112,9 @@ function Card({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
   const { dispatch } = useKanban()
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    // 🎯 dataTransfer 是拖拽过程中跨节点传数据的唯一通道，且只能序列化字符串；
+    // 这里传 taskId 而非整个 task 对象——目标列拿到 id 后再从 tasks 里查最新对象，
+    // 避免拿到拖拽那一刻的快照过期数据。
     e.dataTransfer.setData('text/plain', task.id)
     e.dataTransfer.effectAllowed = 'move'
   }

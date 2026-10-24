@@ -12,6 +12,10 @@ import { useWebVitals } from './useWebVitals'
  * 页面隐藏时 sendBeacon 批量上报到 /api/v2/metrics，服务端聚合出 P75/P95。」
  */
 
+// 🎯 为什么 Tailwind 类名要「完整写死」成对象值，而不是用模板字符串拼接？
+//    Tailwind v3 的 JIT 引擎靠扫描源码里「完整类名字符串」来生成 CSS，
+//    如果你写 `bg-${color}-50`，扫描器找不到这个完整 token，样式就不会被打包。
+//    这是 React + Tailwind 项目最常见的「样式突然失效」坑，面试常问。
 const RATING_STYLE = {
   good: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   'needs-improvement': 'bg-amber-50 border-amber-200 text-amber-700',
@@ -34,6 +38,11 @@ export default function MetricsPage() {
         实时采集当前页面的 LCP / INP / CLS / FCP / TTFB，页面隐藏时 sendBeacon 批量上报到 /api/v2/metrics。
       </p>
 
+      {/* 🎯 为什么 key 用 v.name 而不是数组下标？
+          useWebVitals 内部 push 时已按 name 去重（同指标只保留最新一条），
+          所以每个 name 在列表里唯一且稳定 → 用 name 做 key 既能让 React
+          复用 DOM，又避免了「新数据插到前面时下标错位」导致的状态丢失。
+          追问：什么场景下 index 做 key 也没问题？——列表完全静态、不排序、不插入。 */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {vitals.map((v) => (
           <div
@@ -59,6 +68,9 @@ export default function MetricsPage() {
           <li>CLS 累计意外布局偏移（排除用户输入后的偏移），越小越稳定</li>
           <li>上报用 sendBeacon：页面关闭时也能发出，不阻塞主线程，不占用 keepalive 连接配额</li>
           <li>服务端聚合：按 P75（第 75 百分位）评估，避免长尾极端值干扰</li>
+          {/* 代码侧补一句：性能指标分布是「右偏长尾」（少量慢用户把均值拉高），
+              用平均数会被极端值带偏；P75 代表「75% 用户 ≤ 该值」，
+              是行业默认口径（CrUX 公开数据集也用 P75）。 */}
         </ul>
       </div>
     </div>

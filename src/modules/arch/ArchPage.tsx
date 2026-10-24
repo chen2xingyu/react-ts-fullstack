@@ -17,7 +17,12 @@ function center(node: ArchNode) {
 }
 
 export default function ArchPage() {
+  // 🎯 useState<string | null>(null)：显式声明「未选中时是 null」。
+  //    TS→JS：泛型参数 <string | null> 编译后擦除，产物就是 useState(null)；
+  //    类型只在编译期帮你挡「把 selectedId 当 string 用」的错误。
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // 🎯 这里用 ?? null 兜底，而不是 NODES.find(...)! —— 追问见下方 edges 循环里的 ! 用法。
+  //    useMemo 缓存 find 结果：selectedId 不变就不重算，避免每次 render 都遍历数组。
   const selected = useMemo(() => NODES.find((n) => n.id === selectedId) ?? null, [selectedId])
 
   return (
@@ -40,6 +45,14 @@ export default function ArchPage() {
         </defs>
 
         {/* 边 */}
+        {/* 🎯 TS 考点：find(...)! 是非空断言（non-null assertion）。
+            它只是告诉编译器「我保证这里一定能找到」，编译后整句擦除，
+            运行时如果 e.from 在 NODES 里找不到，from 就是 undefined，
+            下一行 center(from) 直接抛 Cannot read properties of undefined。
+            易错对比：
+            ✅ NODES.find(...) ?? fallback   —— 运行时也安全
+            ❌ NODES.find(...)!               —— 运行时不安全，纯编译器 silencer
+            本项目敢用 ! 的前提是：EDGES/NODES 都是本地常量，id 写错立刻能跑出来。 */}
         {EDGES.map((e) => {
           const from = NODES.find((n) => n.id === e.from)!
           const to = NODES.find((n) => n.id === e.to)!

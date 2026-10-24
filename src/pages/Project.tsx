@@ -3,6 +3,12 @@ import { Link } from 'react-router-dom'
 
 // ============ 数据定义 ============
 
+// 🎯 面试考点：interface 描述「数据形状」，编译后全部擦除
+// 给前端/后端/引擎三组技术栈项定统一形状：名字/版本/角色/亮点/图标/配色。
+// TS→JS：interface 在产物里一行都不剩，运行时根本没有 TechItem 这个「值」——
+//   它纯是写代码时的约束。易错：interface 只声明形状、不带逻辑。
+// 追问：interface vs type 怎么选？声明对象结构、可能被合并/继承用 interface；
+//   联合、交叉、工具类型用 type。
 interface TechItem {
   name: string
   version: string
@@ -19,6 +25,10 @@ interface TechPointRef {
   link: string
 }
 
+// 🎯 面试考点：静态数据为什么放在组件【外面】
+// frontendTechs 等数组是模块级常量，整个应用只创建一次；若挪进 Project() 组件体，
+// 组件每次重渲染都会 new 一批新数组/对象引用，传给子组件会让本可 memo 的 props
+// 全部「引用变了」而重渲染。口诀：不变的静态数据 → 提到模块顶层。
 // ---------- 前端技术栈 ----------
 const frontendTechs: TechItem[] = [
   {
@@ -442,8 +452,14 @@ function ArchitectureFlow() {
 }
 
 export default function Project() {
+  // 🎯 面试考点：Tab 的状态设计 —— 一个枚举 state 驱动整组卡片
+  // activeTab 只存「当前选中哪个」，渲染时从 tabs 里 find 出对应 techs 再 map，
+  // 而不是把三组卡片都渲染出来用 CSS 显隐切换 —— 后者 DOM 一直挂着、浪费。
+  // useState<'frontend' | 'backend' | 'engine'>：联合字面量限定 tab key 合法取值。
   const [activeTab, setActiveTab] = useState<'frontend' | 'backend' | 'engine'>('engine')
 
+  // typeof activeTab 是「类型位置的 typeof」：取 state 的类型（那串联合字面量），
+  // 让 tabs 里的 key 自动和 state 对齐 —— 写错 key 编译期报错，不必手抄两遍联合。
   const tabs: { key: typeof activeTab; label: string; techs: TechItem[] }[] = [
     { key: 'frontend', label: '🖥️ 前端', techs: frontendTechs },
     { key: 'backend', label: '⚙️ 后端', techs: backendTechs },
@@ -527,6 +543,14 @@ export default function Project() {
 
         {/* 技术卡片网格 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* 🎯 面试考点：.find(...)! 非空断言 —— 写着爽，坑在哪
+              tabs.find(...) 返回「可能 undefined」（没匹配上就是 undefined），直接 .techs
+              会 TS 报错。这里断言 ! 表示「我保证一定找得到」。正误对比：
+                错：tabs.find(t => t.key === activeTab).techs   // 编译报错
+                险：tabs.find(...)!.techs   // 编译过，但 activeTab 一旦出现非法值运行时
+                                            // TypeError 崩溃
+                稳：tabs.find(...)?.techs ?? []   // 兜底空数组不崩
+              key={tech.name}：name 唯一且稳定，适合当列表 key。 */}
           {tabs
             .find((t) => t.key === activeTab)!
             .techs.map((tech) => (
@@ -733,6 +757,11 @@ const proc = spawn(PYTHON, [tmpFile], {
           <span className="text-sm text-gray-400">项目背后的原理与深度</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 🎯 面试考点：react-router 的 <Link to> vs 原生 <a href>
+              Link 是 SPA 客户端路由：点击只换组件、不整页刷新、不丢 JS 状态；
+              <a href> 会触发浏览器整页加载，把 React 应用整个重启。
+              key={idx}：这里是纯静态数据、永不增删排序，用 index 当 key 可接受；
+              但若列表会过滤/重排，就必须换成稳定 id（见 Tech.tsx 讲解）。 */}
           {techPoints.map((point, idx) => (
             <Link
               key={idx}

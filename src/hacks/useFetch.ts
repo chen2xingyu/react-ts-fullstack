@@ -14,6 +14,18 @@ import { useEffect, useRef, useState } from 'react'
  *   - AbortController 是浏览器原生，能真正取消网络请求（省带宽）
  *   - 请求 id 只忽略过期响应，请求已发出且返回了
  *   - 最好两者结合：abort 取消 + ref 忽略双重保险
+ *
+ * 竞态具体场景（必懂）：url 快速从 A 切到 B，A 的请求却后返回。
+ *   若不处理，A 的旧数据会晚到、覆盖 B 的新数据（界面闪回旧内容）。
+ *   这里 url 一变就 abort 旧 controller，A 的 await 直接抛 AbortError 被静默吞掉，
+ *   绝不可能再 setState——aborted 判断就是这道闸门。
+ *
+ * 状态机 / 类型收窄（TS→JS）：
+ *   FetchState 是判别联合（discriminated union），靠 status 这个字面量字段做"判别键"，
+ *   于是 if/switch(status==='success') 后 TS 能把 data 精确收窄成 T。
+ *   编译后这些联合类型、T 泛型全部擦除，运行时只是普通对象 { status, data, error }。
+ *   末尾 eslint-disable-next-line react-hooks/exhaustive-deps 是有意为之：
+ *   靠 url 变化驱动重新请求，不把 init/runFetch 放进依赖，避免 init 引用抖动导致重复发请求。
  */
 export type FetchState<T> =
   | { status: 'idle'; data: undefined; error: undefined }

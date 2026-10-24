@@ -49,6 +49,19 @@ function guard(el: ReactElement) {
   )
 }
 
+/**
+ * 🎯 面试考点补强：声明式路由 <Routes>/<Route> 结构（本工程用的是这套，不是 createBrowserRouter）
+ * - <Routes> 是“路由匹配器”：从上到下找第一个 path 命中的 <Route> 渲染其 element，命中即停（排他）。
+ * - 嵌套：父 <Route path="/" element={<Layout/>}> 不写 index 时，匹配 / 后把子路由渲染进 Layout 的 <Outlet/>。
+ *   子 Route 的 path 是【相对路径】（如 "about"，不要写 "/about"），拼出来就是 /about。
+ * - <Route index>：“索引路由”——访问父路径 / 本身时渲染（不指定就 Outlet 空着），对应 Vue 的默认子路由。
+ * - path="*"：通配兜底。这里不直接渲染 404 组件，而是 <Navigate to="/404" replace/> 重定向到真实 /404 页；
+ *   好处是地址栏统一显示 /404，刷新/分享不会因路径怪而二次 404。
+ * - 与 Vue Router 对比：v6 的 <Route children> ≈ Vue 的 children；守卫组件 <ProtectedRoute>
+ *   替代 Vue 里 router.beforeRouteEnter 全局守卫（React 是“组件化”思维，把守卫包成布局/元素）。
+ * - 版本追问：v6.4+ 推荐 createBrowserRouter + RouterProvider（数据路由 loader/action）；
+ *   本工程仍是经典的 <Routes> 声明式，面试说清两者关系即可：都是 v6，前者主打数据获取集成。
+ */
 export default function AppRouter() {
   return (
     <Routes>
@@ -111,6 +124,7 @@ export default function AppRouter() {
         />
 
         <Route path="404" element={guard(<NotFound />)} />
+        {/* 兜底：任何未命中路径都重定向到 /404；放在最后因为 Routes 是“首个命中即停” */}
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Route>
     </Routes>

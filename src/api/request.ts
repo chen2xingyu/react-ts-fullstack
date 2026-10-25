@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { useAuthStore, getAccessToken, getRefreshToken } from '@/store/auth'
+import { useAuthStore, getAccessToken } from '@/store/auth'
 import { refreshToken as apiRefreshToken } from './auth'
 
 export interface ApiResponse<T = unknown> {
@@ -14,10 +14,18 @@ export interface ApiResponse<T = unknown> {
  * 对接多个后端/baseURL。baseURL 取 Vite 环境变量 import.meta.env（构建期静态替换），
  * timeout=10s 是全局兜底；单个请求可在 config.timeout 覆盖（见 python.ts 的 60s）。
  * TS→JS：import.meta.env 打包后被替换成真实字符串字面量，所有类型信息编译后擦除。
+ *
+ * 🎯 安全考点：withCredentials: true 是 Cookie 方案的前提
+ * refreshToken 由后端 write 在 httpOnly Cookie 里，axios 默认【不】跨域携带 Cookie。
+ * 只有显式 withCredentials: true，浏览器才会在 /auth/refresh、/auth/logout 带上它；
+ * 同时后端 CORS 必须回 Access-Control-Allow-Credentials: true（见 server/app.js），
+ * 否则浏览器直接拦掉响应。本地开发走 Vite 代理是同源请求，看似不配也行，
+ * 但一旦前后端分域部署就会失效，所以这里统一开启。
  */
 const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10_000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -88,14 +96,10 @@ request.interceptors.response.use(
 
     // 如果是 401 且不是重试过的请求，尝试刷新 Token
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshTokenValue = getRefreshToken()
-
-      if (!refreshTokenValue) {
-        // 没有 Refresh Token，直接跳转登录
-        useAuthStore.getState().logout()
-        window.location.href = '/login'
-        return Promise.reject(error)
-      }
+      // 🎯 安全考点：这里【不再】检查本地有没有 refreshToken。
+      // refreshToken 存在 httpOnly Cookie 里，JS 根本读不到，判断「有没有」只能靠服务端：
+      // 有 Cookie → refresh 成功；没有/过期/被吊销 → refresh 返回 401，走下面的登出分支。
+      // 旧实现读 localStorage 再决定是否刷新，新方案下这个前置判断已失去意义。
 
       // 如果正在刷新 Token，把当前请求加入等待队列
       if (isRefreshing) {
@@ -115,8 +119,8 @@ request.interceptors.response.use(
       isRefreshing = true
 
       try {
-        // 刷新 Token
-        const data = await apiRefreshToken(refreshTokenValue)
+        // 刷新 Token：无参，凭证由浏览器自动从 httpOnly Cookie 带上
+        const data = await apiRefreshToken()
         const newAccessToken = data.accessToken
 
         // 更新 store 中的 Token

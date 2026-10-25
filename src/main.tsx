@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
+import { bootstrapAuth } from './auth/bootstrap'
 import './index.css'
 
 // 🎯 面试考点：React Query 的全局默认配置（服务端状态缓存策略）
@@ -56,3 +57,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </React.StrictMode>,
 )
+
+/**
+ * 🎯 安全考点：先渲染、再静默刷新，而不是「等刷新完再渲染」
+ * accessToken 只存内存，刷新页面后必然为空。这里在 render 之后立即发起 bootstrap：
+ * - 不阻塞首屏：未登录用户也能立刻看到公开页面，不用等一次网络往返；
+ * - 守卫兜底：isBootstrapping 为 true 时 <ProtectedRoute> 显示加载态，
+ *   既不会误踢到登录页，也不会在未确定身份时渲染受保护内容。
+ * bootstrapAuth 内部是单例 Promise，StrictMode 双调用/重复调用都不会打多次 refresh。
+ */
+void bootstrapAuth()

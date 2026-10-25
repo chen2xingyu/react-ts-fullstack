@@ -30,9 +30,30 @@ interface ProtectedRouteProps {
  * 未登录时自动跳转到登录页，登录后返回原页面
  * 已登录用户访问登录页时自动跳转到首页
  */
+/**
+ * 静默刷新进行中的占位。
+ * 🎯 安全考点：accessToken 只在内存，F5 后要等 /auth/refresh 回来才有登录态。
+ * 这段时间里如果直接判断 isAuthenticated=false 并 <Navigate to="/login">，
+ * 已登录用户会被「闪」到登录页（Cookie 明明有效），体验极差。
+ * 所以守卫必须先看 isBootstrapping：未确定身份 → 渲染加载态，不做任何跳转。
+ */
+function AuthBootstrapping() {
+  return (
+    <div className="flex items-center justify-center py-24 text-gray-400">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-500" />
+      <span className="ml-3 text-sm">正在恢复登录状态…</span>
+    </div>
+  )
+}
+
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isBootstrapping = useAuthStore((s) => s.isBootstrapping)
   const location = useLocation()
+
+  if (isBootstrapping) {
+    return <AuthBootstrapping />
+  }
 
   if (!isAuthenticated) {
     // 保存当前路径，登录成功后返回
@@ -50,6 +71,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
  */
 export function GuestRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isBootstrapping = useAuthStore((s) => s.isBootstrapping)
+
+  // 身份未确定时先别渲染登录表单：已登录用户会被闪一下「登录页再跳首页」
+  if (isBootstrapping) {
+    return <AuthBootstrapping />
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />

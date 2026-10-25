@@ -51,10 +51,11 @@ export default function Login() {
     try {
       if (mode === 'login') {
         const data = await apiLogin(email, password)
-        setAuth(data.user, data.accessToken, data.refreshToken)
+        // 只传 user + accessToken：refreshToken 已在 httpOnly Cookie 里，JS 拿不到也不需要
+        setAuth(data.user, data.accessToken)
       } else {
         const data = await apiRegister(email, password, name)
-        setAuth(data.user, data.accessToken, data.refreshToken)
+        setAuth(data.user, data.accessToken)
       }
       navigate(from, { replace: true })
     } catch (err) {

@@ -36,7 +36,6 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@/store/auth', () => ({
   getAccessToken: () => mocks.state.accessToken,
-  getRefreshToken: () => 'refresh-token',
   useAuthStore: {
     getState: () => ({
       setAccessToken: mocks.setAccessToken,

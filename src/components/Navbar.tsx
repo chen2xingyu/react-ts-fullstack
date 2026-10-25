@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { logout as apiLogout } from '@/api/auth'
 
 /**
  * 🎯 面试考点：NavLink 与“激活态”样式
@@ -27,7 +28,15 @@ export default function Navbar() {
       isActive ? 'text-primary-600' : 'text-gray-600'
     }`
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // 🎯 安全考点：先通知服务端「吊销 refresh token + 清 httpOnly Cookie」，再清本地。
+    // 只清内存的话，Cookie 还在浏览器里，换新标签页/重新打开仍能静默刷新出登录态，
+    // 「退出登录」就不彻底。网络失败也要继续本地登出（用户意图优先），所以 catch 后不阻断。
+    try {
+      await apiLogout()
+    } catch {
+      /* 服务端不可达/已过期：本地照常登出 */
+    }
     logout()
     // replace:true —— 退出后用历史记录替换当前项，用户点“浏览器后退”不会又回到需要登录的页
     // （那会被守卫再弹回登录页，形成尴尬循环）。这是登出/登录跳转的标准做法。

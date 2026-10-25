@@ -1,6 +1,7 @@
 const http = require('http')
 const express = require('express')
 const cors = require('cors')
+const cookieParser = require('cookie-parser')
 const morgan = require('morgan')
 const config = require('./config')
 const routes = require('./routes')
@@ -15,6 +16,9 @@ const app = express()
 app.use(cors({ origin: config.cors.origin, credentials: true }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+// 🎯 面试考点：refreshToken 走 httpOnly Cookie 后，后端必须能解析 Cookie。
+// cookie-parser 把 Cookie 头解析成 req.cookies（带签名 Cookie 用 req.signedCookies）。
+app.use(cookieParser())
 
 if (config.env === 'development') {
   app.use(morgan('dev'))

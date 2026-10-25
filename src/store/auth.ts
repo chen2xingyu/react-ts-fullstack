@@ -9,6 +9,17 @@
  *   2) 如何避免多余渲染？—— 用 selector 精确订阅：useAuthStore(s => s.accessToken)
  *      只在 accessToken 变化时重渲染；不传 selector 则整个 store 变了就重渲染。
  * TS→JS：泛型 <AuthState & AuthActions> 编译后擦除，运行时就是普通 create(fn)。
+ *
+ * 🎯 安全考点：凭证存哪里（本文件已按「内存 + httpOnly Cookie」改造）
+ * - accessToken：只放 Zustand 内存，【绝不】写 localStorage/sessionStorage。
+ *   刷新页面即丢失，靠启动时的静默刷新（src/auth/bootstrap.ts）重新换取。
+ *   好处：XSS 注入的脚本读不到持久化的令牌；即便被窃取，最多只有 30 分钟有效期。
+ * - refreshToken：完全由后端通过 httpOnly Cookie 管理，前端 JS 从不接触、也读不到。
+ *   好处：防 XSS 窃取；配合 SameSite=Lax + 轮换 + Origin 校验防 CSRF。
+ * - user：也只放内存，启动时由 /auth/profile 拉回（避免用 localStorage 里的过期脏数据渲染）。
+ *
+ * 对照旧方案（已废弃）：accessToken + refreshToken 双份 JSON 塞 localStorage，
+ * 一旦站点有 XSS，攻击者可拿到 7 天有效的 refreshToken 长期接管账号，且改密码也踢不掉。
  */
 import { create } from 'zustand'
 
@@ -28,115 +39,63 @@ export interface AuthUser {
 interface AuthState {
   user: AuthUser | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  /** 应用启动时的静默刷新是否已完成（未完成时路由守卫应显示加载态而不是踢去登录页） */
+  isBootstrapping: boolean
   error: string | null
 }
 
 interface AuthActions {
-  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void
+  setAuth: (user: AuthUser, accessToken: string) => void
   setUser: (user: AuthUser) => void
   setAccessToken: (token: string) => void
+  /** 静默刷新流程结束（成功或失败都调用）：置 isBootstrapping=false */
+  setBootstrapped: () => void
   logout: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 }
-
-// ============ Token 存取工具 ============
-const TOKEN_KEY = 'react_ts_auth_tokens'
-const USER_KEY = 'react_ts_auth_user'
-
-// localStorage 在隐私模式 / 存储被禁用 / 配额满时会抛异常，
-// 这里有意吞掉：认证退化为内存态（刷新后丢失），不影响主流程。
-
-function saveTokens(accessToken: string, refreshToken: string) {
-  try {
-    localStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, refreshToken }))
-  } catch {
-    /* 存储不可用：降级为内存态 */
-  }
-}
-
-function loadTokens(): { accessToken: string | null; refreshToken: string | null } {
-  try {
-    const data = localStorage.getItem(TOKEN_KEY)
-    if (data) return JSON.parse(data)
-  } catch {
-    /* 数据损坏或存储不可用：视为未登录 */
-  }
-  return { accessToken: null, refreshToken: null }
-}
-
-function saveUser(user: AuthUser) {
-  try {
-    localStorage.setItem(USER_KEY, JSON.stringify(user))
-  } catch {
-    /* 存储不可用：降级为内存态 */
-  }
-}
-
-function loadUser(): AuthUser | null {
-  try {
-    const data = localStorage.getItem(USER_KEY)
-    if (data) return JSON.parse(data)
-  } catch {
-    /* 数据损坏或存储不可用：视为未登录 */
-  }
-  return null
-}
-
-function clearAuth() {
-  try {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
-  } catch {
-    /* 存储不可用：无需处理 */
-  }
-}
-
-// ============ 初始化 ============
-const savedTokens = loadTokens()
-const savedUser = loadUser()
 
 // ============ Zustand Store ============
 // 🎯 面试考点：create 的 set 是「浅合并」，不是 Redux 那样整包替换
 // (set) => 接收一个 set 函数；set({ accessToken }) 只会浅合并这一个字段，
 //   其余 state（user/isAuthenticated…）原样保留 —— 这与 React.setState 的合并语义一致。
 // 易错点：因此不需要每次都展开旧 state。对比 Redux reducer 必须 return 整个新 state。
-// 这里模块加载时先 loadTokens/loadUser 读 localStorage 做初始化，刷新页面后登录态不丢。
 export const useAuthStore = create<AuthState & AuthActions>((set) => ({
-  user: savedUser,
-  accessToken: savedTokens.accessToken,
-  refreshToken: savedTokens.refreshToken,
-  isAuthenticated: !!savedTokens.accessToken,
+  user: null,
+  accessToken: null,
+  isAuthenticated: false,
   isLoading: false,
+  isBootstrapping: true, // 默认 true：等 bootstrap 静默刷新结束
   error: null,
 
-  setAuth: (user, accessToken, refreshToken) => {
-    saveTokens(accessToken, refreshToken)
-    saveUser(user)
-    set({ user, accessToken, refreshToken, isAuthenticated: true, error: null })
+  setAuth: (user, accessToken) => {
+    set({ user, accessToken, isAuthenticated: true, isBootstrapping: false, error: null })
   },
 
   setUser: (user) => {
-    saveUser(user)
-    set({ user })
+    set({ user, isAuthenticated: true })
   },
 
   setAccessToken: (token) => {
-    const { refreshToken } = loadTokens()
-    saveTokens(token, refreshToken || '')
-    set({ accessToken: token })
+    set({ accessToken: token, isAuthenticated: true })
+  },
+
+  setBootstrapped: () => {
+    // 静默刷新失败时（没有有效 Cookie）保持未登录状态，守卫正常踢去 /login
+    set((state) => ({
+      isBootstrapping: false,
+      isAuthenticated: !!state.accessToken,
+    }))
   },
 
   logout: () => {
-    clearAuth()
     set({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
+      isBootstrapping: false,
       error: null,
     })
   },
@@ -146,16 +105,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
 }))
 
 // ============ 导出工具函数 ============
-// 🎯 面试考点：这两个函数刻意【不是 hook】—— 它们在 axios 拦截器（非组件、无 React 渲染
-// 上下文）里被调用，所以直接读 localStorage 而不是 useAuthStore()。拦截器需要同步拿到
-// token 塞进请求头，用 getState() 反而绕。常被追问：token 到底存内存还是 localStorage？
-//   答：localStorage 刷新不丢但易受 XSS；httpOnly Cookie 防 XSS 但有 CSRF —— 是安全权衡。
+// 🎯 面试考点：为什么用 getState() 而不是 hook？
+// 这两个函数在 axios 拦截器（非组件、无 React 渲染上下文）里被调用，
+// hook 只能在组件函数体中调用（React Hooks 规则），组件外必须走 getState() 同步读取。
 export function getAccessToken(): string | null {
-  return loadTokens().accessToken
-}
-
-export function getRefreshToken(): string | null {
-  return loadTokens().refreshToken
+  return useAuthStore.getState().accessToken
 }
 
 // 🎯 面试考点：JWT 结构与过期判断

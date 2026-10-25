@@ -59,8 +59,12 @@ export default function Login() {
       }
       navigate(from, { replace: true })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '操作失败'
-      setError(msg)
+      // 🎯 面试考点：axios 对 4xx/5xx 走 reject 分支，不会进入响应拦截器的成功回调，
+      // 只读 err.message 只能拿到 "Request failed with status code 400"。
+      // 服务端（Joi 校验 / 业务错误）的真实提示在 error.response.data.message 里。
+      const serverMessage = (err as { response?: { data?: { message?: string } } }).response?.data
+        ?.message
+      setError(serverMessage || (err instanceof Error ? err.message : '操作失败'))
     } finally {
       setLoading(false)
     }

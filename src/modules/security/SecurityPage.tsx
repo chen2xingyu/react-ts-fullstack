@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DOMPurify from 'dompurify'
 
 /**
  * 🎯 面试考点：Web 安全实验室（XSS + CSRF）
@@ -36,6 +37,11 @@ const XSS_PAYLOAD = '<img src=x onerror="alert(\'XSS 攻击成功\')">'
 
 function XssDemo() {
   const [input, setInput] = useState(XSS_PAYLOAD)
+  // 🎯 面试考点：富文本渲染的唯一正确姿势 —— 先消毒再插入
+  // DOMPurify 是白名单式清理：保留安全标签/属性，剥掉 <script>、on* 事件属性、
+  // javascript: 协议等。它不依赖「黑名单枚举攻击向量」，所以绕过成本高得多。
+  // 注意：这里每次 render 都 sanitize，真实项目可用 useMemo 缓存（input 为大文本时）。
+  const sanitized = DOMPurify.sanitize(input)
   return (
     <section className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <h2 className="mb-3 text-base font-semibold text-gray-800">1. XSS —— 危险渲染 vs 安全渲染</h2>
@@ -45,7 +51,7 @@ function XssDemo() {
         className="mb-4 w-full rounded-md border border-gray-300 px-3 py-1.5 font-mono text-sm focus:border-red-400 focus:outline-none"
         placeholder="输入 HTML/脚本"
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
           <div className="mb-2 text-xs font-medium text-red-700">❌ dangerouslySetInnerHTML（危险）</div>
           {/* 🎯 原理：React 默认对 JSX 插值做 HTML 实体转义（< → &lt; 等），
@@ -66,6 +72,19 @@ function XssDemo() {
               浏览器把内容当纯文本，< > " ' 全部当字符显示，不解析标签。 */}
           <div data-testid="xss-safe" className="min-h-[40px] rounded bg-white p-2 text-sm">{input}</div>
           <p className="mt-2 text-xs text-emerald-600">React 默认转义，HTML 被当纯文本显示</p>
+        </div>
+        <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-3">
+          <div className="mb-2 text-xs font-medium text-sky-700">✅ DOMPurify 消毒后渲染</div>
+          {/* 🎯 富文本（评论、Markdown 渲染结果）必须走这条路径：
+              DOMPurify.sanitize 后仍是合法 HTML，可以保留 <b>/<a>/<img> 等展示能力，
+              但 <script>、onerror 这类可执行内容已被剥掉。
+              对比第二栏：textContent 安全但会丢失富文本格式；本栏既安全又能保留格式。 */}
+          <div
+            data-testid="xss-sanitized"
+            className="min-h-[40px] rounded bg-white p-2 text-sm"
+            dangerouslySetInnerHTML={{ __html: sanitized }}
+          />
+          <p className="mt-2 text-xs text-sky-600">onerror / script 被剥离，标签与样式保留</p>
         </div>
       </div>
       <p className="mt-3 text-xs text-gray-400">

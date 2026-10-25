@@ -1,4 +1,5 @@
-import { refreshToken, getProfile } from '@/api/auth'
+import { getProfile } from '@/api/auth'
+import { refreshAccessToken } from './refreshSession'
 import { useAuthStore } from '@/store/auth'
 
 /**
@@ -30,8 +31,9 @@ export function bootstrapAuth(): Promise<void> {
     }
 
     try {
-      const { accessToken } = await refreshToken()
-      useAuthStore.getState().setAccessToken(accessToken)
+      // 走统一的刷新入口：与 axios 401 拦截器、其他标签页共享同一把锁，
+      // 避免「bootstrap 刷新」和「业务请求 401 触发刷新」并发轮换同一个旧 token
+      await refreshAccessToken()
     } catch {
       // 无有效 Cookie：保持未登录，守卫会把受保护页面导向 /login
       useAuthStore.getState().setBootstrapped()

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { useAuthStore, getAccessToken } from '@/store/auth'
-import { refreshToken as apiRefreshToken } from './auth'
+import { refreshAccessToken } from '@/auth/refreshSession'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -119,14 +119,13 @@ request.interceptors.response.use(
       isRefreshing = true
 
       try {
-        // 刷新 Token：无参，凭证由浏览器自动从 httpOnly Cookie 带上
-        const data = await apiRefreshToken()
-        const newAccessToken = data.accessToken
+        // 刷新 Token：无参，凭证由浏览器自动从 httpOnly Cookie 带上。
+        // 🎯 并发考点：必须走 refreshAccessToken（带 页内 Promise 单例 + 跨标签 Web Lock），
+        // 不能在这里直接调 apiRefreshToken —— 否则 bootstrap 与该拦截器会同时轮换同一个
+        // 旧 refresh token，后到的请求被服务端判定为「凭证复用」，导致全体会话被吊销。
+        const newAccessToken = await refreshAccessToken()
 
-        // 更新 store 中的 Token
-        useAuthStore.getState().setAccessToken(newAccessToken)
-
-        // 处理等待中的请求
+        // 等待队列中的请求用同一个新令牌重放
         pendingRequests.forEach(({ resolve }) => resolve(newAccessToken))
         pendingRequests = []
 

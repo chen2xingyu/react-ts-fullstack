@@ -13,9 +13,16 @@ const REFRESH_TOKEN_EXPIRES_IN = '7d'
 // Cookie maxAge 用毫秒，和 refresh token 有效期保持一致
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * 🎯 面试考点：accessToken 为什么也要 jti？
+ * 默认情况下 accessToken 是纯无状态的，签发后服务端无法作废（退出登录后 30 分钟内仍可用）。
+ * 加上 jti 后，就能像 refresh 一样把它写进 Redis 黑名单，实现「退出即失效」。
+ * 代价：每次认请求都要查一次 Redis（本工程用 mget 合并成一次），
+ * 所以大厂常见组合是「短 TTL（5~15min）+ 黑名单」二选一或混用。
+ */
 function generateAccessToken(payload) {
   const jwt = require('jsonwebtoken')
-  return jwt.sign(payload, config.jwt.secret, {
+  return jwt.sign({ ...payload, jti: randomUUID() }, config.jwt.secret, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
     issuer: config.jwt.issuer,
   })

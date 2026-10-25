@@ -5,6 +5,7 @@ const config = require('../config')
 const {
   generateAccessToken,
   generateRefreshToken,
+  verifyAccessToken,
   verifyRefreshToken,
   ACCESS_TOKEN_EXPIRES_IN,
   REFRESH_TOKEN_MAX_AGE_MS,
@@ -14,6 +15,7 @@ const {
   isRefreshTokenRevoked,
   revokeAllForUser,
   isIssuedBeforeRevocation,
+  revokeAccessToken,
 } = require('../utils/tokenStore')
 
 /**
@@ -332,14 +334,30 @@ class AuthController {
   }
 
   /**
-   * 退出登录：吊销当前 refresh token 并清除 Cookie
+   * 退出登录：吊销当前 access token + refresh token，并清除 Cookie
    * POST /api/auth/logout
    *
-   * 注意：accessToken 是无状态的，服务端无法即时作废（要靠黑名单或短有效期兜底），
-   * 所以这里只保证「不能再用 Cookie 换新 token」，前端同时清掉内存里的 accessToken。
-   * 30 分钟内该 accessToken 理论上仍可用——这是双 token 方案的固有取舍，面试常被追问。
+   * 🎯 面试考点：这里做「双重吊销」，缺一不可
+   * 1. access token：把 jti 写进 Redis 黑名单（TTL = 剩余寿命），下一次带旧 token 的请求立刻 401。
+   *    否则退出后 30 分钟内旧 token 仍能访问接口。
+   * 2. refresh token：吊销 jti + 清 httpOnly Cookie，保证不能再换出新 access token。
+   * 注意 logout 是公开接口（不带 auth 中间件），因为 access token 可能刚好已过期；
+   * 这里宽松解析 Authorization：带了解析成功就吊销，解析失败忽略，绝不阻断退出流程。
    */
   static async logout(req, res) {
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = verifyAccessToken(authHeader.split(' ')[1])
+        if (decoded.jti) {
+          const remainingTtl = Math.max(1, Number(decoded.exp) - Math.floor(Date.now() / 1000))
+          await revokeAccessToken(decoded.jti, remainingTtl)
+        }
+      } catch {
+        // 已过期/被篡改：本来就不该再被接受，无需入黑名单
+      }
+    }
+
     const refreshToken = readRefreshToken(req)
 
     if (refreshToken) {
@@ -448,8 +466,10 @@ class AuthController {
         [passwordHash, req.user.id]
       )
 
-      // 🎯 面试考点：改密码必须吊销该用户所有 refresh token（其他设备强制下线），
+      // 🎯 面试考点：改密码必须吊销该用户所有旧凭证（其他设备强制下线），
       // 否则被盗的 refresh token 还能继续换新 access token，「改密码自救」就失效了。
+      // revokeAllForUser 写入的是「用户级吊销水位」，认证中间件会同时拒绝
+      // iat 早于水位的 access token 和 refresh token → 已签发的 access token 也立刻失效。
       await revokeAllForUser(req.user.id)
       clearRefreshCookie(res)
 

@@ -21,10 +21,14 @@ const { redis } = require('../config/redis')
 
 const REVOKED_JTI_PREFIX = 'auth:revoked-jti:'
 const REVOKED_AFTER_PREFIX = 'auth:revoked-after:'
+const REVOKED_ACCESS_PREFIX = 'auth:revoked-access:'
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60
+// access token 默认寿命，与 jwt.js 的 ACCESS_TOKEN_EXPIRES_IN('30m') 保持一致
+const ACCESS_TTL_SECONDS = 30 * 60
 
 const revokedKey = (jti) => `${REVOKED_JTI_PREFIX}${jti}`
 const revokedAfterKey = (sub) => `${REVOKED_AFTER_PREFIX}${sub}`
+const revokedAccessKey = (jti) => `${REVOKED_ACCESS_PREFIX}${jti}`
 
 /** 作废单个 refresh token（TTL 设为剩余寿命，过期自动清理，不浪费内存） */
 async function revokeRefreshToken(jti, ttlSeconds = REFRESH_TTL_SECONDS) {
@@ -74,10 +78,54 @@ async function isIssuedBeforeRevocation(sub, iat) {
   }
 }
 
+/**
+ * 作废单个 access token（退出登录时调用）
+ * TTL 设为「剩余寿命」，token 自然过期后黑名单条目也自动消失，不无限增长。
+ */
+async function revokeAccessToken(jti, ttlSeconds = ACCESS_TTL_SECONDS) {
+  if (!jti) return
+  const ttl = Math.max(1, Math.floor(ttlSeconds))
+  try {
+    await redis.set(revokedAccessKey(jti), '1', 'EX', ttl)
+  } catch (err) {
+    console.warn('⚠️ 吊销 access token 失败（Redis 可能未启动）:', err.message)
+  }
+}
+
+/**
+ * 🎯 面试考点：认证中间件的「一次 Redis 往返」
+ *
+ * 校验两件事，且用 mget 合并成一次网络往返（每个受保护请求只多 ~0.1ms）：
+ * 1. 该 access token 的 jti 是否在退出登录黑名单里
+ * 2. 用户级吊销水位：改密码 / 异常复用后，iat 早于水位的 token 一律失效
+ *
+ * 权衡（面试常问）：无状态 JWT + 黑名单 = 多一次 Redis 查询；
+ * 另一种方案是纯短 TTL（不查 Redis），代价是退出后最长仍可用一个 TTL 周期。
+ */
+async function isAccessTokenRejected(jti, sub, iat) {
+  const keys = []
+  if (jti) keys.push(revokedAccessKey(jti))
+  if (sub) keys.push(revokedAfterKey(sub))
+  if (keys.length === 0) return false
+
+  try {
+    const values = await redis.mget(keys)
+    if (jti && values[0] === '1') return true
+    const watermark = sub ? values[jti ? 1 : 0] : null
+    return watermark !== null && watermark !== undefined && Number(iat) < Number(watermark)
+  } catch (err) {
+    console.warn('⚠️ 查询 access token 吊销状态失败（Redis 可能未启动）:', err.message)
+    return false
+  }
+}
+
 module.exports = {
   revokeRefreshToken,
   isRefreshTokenRevoked,
   revokeAllForUser,
   isIssuedBeforeRevocation,
+  revokeAccessToken,
+  isAccessTokenRejected,
   REFRESH_TTL_SECONDS,
+  ACCESS_TTL_SECONDS,
 }

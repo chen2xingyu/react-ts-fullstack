@@ -44,7 +44,9 @@ function PageLoading() {
 function guard(el: ReactElement) {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoading />}>{el}</Suspense>
+      <Suspense fallback={<PageLoading />}>
+        {el}
+      </Suspense>
     </ErrorBoundary>
   )
 }
